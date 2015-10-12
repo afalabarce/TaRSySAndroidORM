@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>TaRSySAndroidORM by tarsys</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">TaRSySAndroidORM</h1>
+      <h2 class="project-tagline">Yet Another Advanced ORM for Android</h2>
+      <a href="https://github.com/tarsys/TaRSySAndroidORM" class="btn">View on GitHub</a>
+      <a href="https://github.com/tarsys/TaRSySAndroidORM/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/tarsys/TaRSySAndroidORM/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <p><strong>Why I created this ORM if there are already many others?</strong></p>
+
+<p>I created this ORM for one simple reason ... I could not find one that would cover all my needs ...</p>
+
+<p>I was looking for a ORM that was easy to deploy, powerful, and without any interaction by the developer at the time of making changes to the persistent entities.</p>
+
+<p>How it works?</p>
+
+<p>First... In your project add a reference to my orm project...</p>
+
+<p>Next, in your Manifest file... Pay attention to meta-data tags into the application section...</p>
+
+<div class="highlight highlight-text-xml"><pre>    &lt;<span class="pl-ent">application</span>
+        <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">allowBackup</span>=<span class="pl-s"><span class="pl-pds">"</span>true<span class="pl-pds">"</span></span>
+        <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">icon</span>=<span class="pl-s"><span class="pl-pds">"</span>@mipmap/ic_launcher<span class="pl-pds">"</span></span>
+        <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">label</span>=<span class="pl-s"><span class="pl-pds">"</span>@string/app_name<span class="pl-pds">"</span></span>
+        <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">supportsRtl</span>=<span class="pl-s"><span class="pl-pds">"</span>true<span class="pl-pds">"</span></span>
+        <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">theme</span>=<span class="pl-s"><span class="pl-pds">"</span>@style/AppTheme<span class="pl-pds">"</span></span> &gt;
+
+        &lt;<span class="pl-ent">meta-data</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>IS_EXTERNALSTORAGE<span class="pl-pds">"</span></span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">value</span>=<span class="pl-s"><span class="pl-pds">"</span>true<span class="pl-pds">"</span></span> /&gt;
+
+        &lt;<span class="pl-ent">meta-data</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>DATABASE_DIRECTORY<span class="pl-pds">"</span></span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">value</span>=<span class="pl-s"><span class="pl-pds">"</span>ExampleTaRSySORM<span class="pl-pds">"</span></span> /&gt;
+
+        &lt;<span class="pl-ent">meta-data</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>DATABASE_NAME<span class="pl-pds">"</span></span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">value</span>=<span class="pl-s"><span class="pl-pds">"</span>exampletarsysorm.db<span class="pl-pds">"</span></span> /&gt;
+
+        &lt;<span class="pl-ent">meta-data</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>ENTITY_PACKAGES<span class="pl-pds">"</span></span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">value</span>=<span class="pl-s"><span class="pl-pds">"</span>com.tarsys.exampletarsysorm.entities<span class="pl-pds">"</span></span> /&gt;
+
+        &lt;<span class="pl-ent">activity</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>.MainActivity<span class="pl-pds">"</span></span> &gt;
+
+            &lt;<span class="pl-ent">intent-filter</span>&gt;
+                &lt;<span class="pl-ent">action</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>android.intent.action.MAIN<span class="pl-pds">"</span></span> /&gt;
+
+                &lt;<span class="pl-ent">category</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>android.intent.category.LAUNCHER<span class="pl-pds">"</span></span> /&gt;
+
+            &lt;/<span class="pl-ent">intent-filter</span>&gt;
+
+        &lt;/<span class="pl-ent">activity</span>&gt;
+
+    &lt;/<span class="pl-ent">application</span>&gt;</pre></div>
+
+<p>Next in your Main Activity (usually a Splash Activity) onCreate Method, you need to write this code...</p>
+
+<div class="highlight highlight-source-java"><pre>    <span class="pl-c1">...</span>
+    <span class="pl-k">if</span> (<span class="pl-smi">SGBDEngine</span><span class="pl-k">.</span>Initialize(<span class="pl-v">this</span>)){
+    <span class="pl-c1">...</span> 
+    }<span class="pl-k">else</span>{
+       <span class="pl-c">// if the initialization was not made...</span>
+    }
+    <span class="pl-c1">...</span></pre></div>
+
+<p>and... next, how we create the persistent entities? it's very simple... Let's look at a simple example...</p>
+
+<div class="highlight highlight-source-java"><pre>    <span class="pl-k">package</span> <span class="pl-smi">com.tarsys.exampletarsysorm.entities</span>;
+
+    <span class="pl-k">import</span> <span class="pl-smi">com.tarsys.android.orm.annotations.DBEntity</span>;
+    <span class="pl-k">import</span> <span class="pl-smi">com.tarsys.android.orm.annotations.TableField</span>;
+    <span class="pl-k">import</span> <span class="pl-smi">com.tarsys.android.orm.enums.DBDataType</span>;
+
+    <span class="pl-c">/**</span>
+<span class="pl-c">     * Created by tarsys on 10/10/15.</span>
+<span class="pl-c">     */</span>
+    @DBEntity(<span class="pl-smi">TableName</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>person<span class="pl-pds">"</span></span>, <span class="pl-smi">Description</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>person entity<span class="pl-pds">"</span></span>)
+    <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">Person</span> {
+        <span class="pl-c">//region private vars</span>
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> personalIdentification;
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> name;
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> lastname1;
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> lastname2;
+
+        <span class="pl-c">//endregion</span>
+
+        <span class="pl-k">public</span> <span class="pl-en">Person</span> (<span class="pl-smi">String</span> <span class="pl-v">identifierPK</span>){
+            <span class="pl-v">this</span><span class="pl-k">.</span>personalIdentification <span class="pl-k">=</span> identifierPK;
+        }    
+
+        <span class="pl-k">@TableField</span>(<span class="pl-c1">FieldName</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>personal_identification<span class="pl-pds">"</span></span>,
+                <span class="pl-c1">Description</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>Fiscal Number identification<span class="pl-pds">"</span></span>,
+                <span class="pl-c1">DataType</span> <span class="pl-k">=</span> <span class="pl-smi">DBDataType</span><span class="pl-k">.</span><span class="pl-smi">StringDataType</span>,
+                <span class="pl-c1">DataTypeLength</span> <span class="pl-k">=</span> <span class="pl-c1">30</span>,
+                <span class="pl-c1">PrimaryKey</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>,
+                <span class="pl-c1">NotNull</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>)
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getPersonalIdentification</span>() {
+            <span class="pl-k">return</span> personalIdentification;
+        }
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setPersonalIdentification</span>(<span class="pl-smi">String</span> <span class="pl-v">personalIdentification</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>personalIdentification <span class="pl-k">=</span> personalIdentification;
+        }
+
+        <span class="pl-k">@TableField</span>(<span class="pl-c1">FieldName</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>name<span class="pl-pds">"</span></span>,
+            <span class="pl-c1">Description</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>Person name<span class="pl-pds">"</span></span>,
+            <span class="pl-c1">DataType</span> <span class="pl-k">=</span> <span class="pl-smi">DBDataType</span><span class="pl-k">.</span><span class="pl-smi">StringDataType</span>,
+            <span class="pl-c1">DataTypeLength</span> <span class="pl-k">=</span> <span class="pl-c1">120</span>,
+            <span class="pl-c1">NotNull</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>,
+            <span class="pl-c1">DefaultValue</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>''<span class="pl-pds">"</span></span>)
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getName</span>() {
+            <span class="pl-k">return</span> name;
+        }
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setName</span>(<span class="pl-smi">String</span> <span class="pl-v">name</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>name <span class="pl-k">=</span> name;
+        }
+
+        <span class="pl-k">@TableField</span>(<span class="pl-c1">FieldName</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>lastname1<span class="pl-pds">"</span></span>,
+            <span class="pl-c1">Description</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>Last Name 1<span class="pl-pds">"</span></span>,
+            <span class="pl-c1">DataType</span> <span class="pl-k">=</span> <span class="pl-smi">DBDataType</span><span class="pl-k">.</span><span class="pl-smi">StringDataType</span>,
+            <span class="pl-c1">DataTypeLength</span> <span class="pl-k">=</span> <span class="pl-c1">120</span>,
+            <span class="pl-c1">NotNull</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>,
+            <span class="pl-c1">DefaultValue</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>''<span class="pl-pds">"</span></span>)
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getLastname1</span>() {
+            <span class="pl-k">return</span> lastname1;
+        }
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setLastname1</span>(<span class="pl-smi">String</span> <span class="pl-v">lastname1</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>lastname1 <span class="pl-k">=</span> lastname1;
+        }
+
+        <span class="pl-k">@TableField</span>(<span class="pl-c1">FieldName</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>lastname2<span class="pl-pds">"</span></span>,
+            <span class="pl-c1">Description</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>Last Name 2<span class="pl-pds">"</span></span>,
+            <span class="pl-c1">DataType</span> <span class="pl-k">=</span> <span class="pl-smi">DBDataType</span><span class="pl-k">.</span><span class="pl-smi">StringDataType</span>,
+            <span class="pl-c1">DataTypeLength</span> <span class="pl-k">=</span> <span class="pl-c1">120</span>,
+            <span class="pl-c1">NotNull</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>,
+            <span class="pl-c1">DefaultValue</span> <span class="pl-k">=</span> <span class="pl-s"><span class="pl-pds">"</span>''<span class="pl-pds">"</span></span>)
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getLastname2</span>() {
+             <span class="pl-k">return</span> lastname2;
+        }
+
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setLastname2</span>(<span class="pl-smi">String</span> <span class="pl-v">lastname2</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>lastname2 <span class="pl-k">=</span> lastname2;
+        }
+    }</pre></div>
+
+<p>And... finally... how to use it?</p>
+
+<div class="highlight highlight-source-java"><pre>    <span class="pl-smi">Person</span> person <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-smi">Person</span>();
+    person<span class="pl-k">.</span>setPersonalIdentification(<span class="pl-s"><span class="pl-pds">"</span>12345678Z<span class="pl-pds">"</span></span>);
+    person<span class="pl-k">.</span>setName(<span class="pl-s"><span class="pl-pds">"</span>Name<span class="pl-pds">"</span></span>);
+    person<span class="pl-k">.</span>setLastname1(<span class="pl-s"><span class="pl-pds">"</span>Last Name 1<span class="pl-pds">"</span></span>);
+    person<span class="pl-k">.</span>setLastname2(<span class="pl-s"><span class="pl-pds">"</span>Last Name 2<span class="pl-pds">"</span></span>);
+
+    <span class="pl-smi">SGBDEngine</span><span class="pl-k">.</span>saveEntity(person);
+    <span class="pl-c">// Gets a list of persons (all persons)</span>
+    <span class="pl-k">ArrayList&lt;<span class="pl-smi">Person</span>&gt;</span> persons <span class="pl-k">=</span> <span class="pl-smi">SGBDEngine</span><span class="pl-k">.</span>filterQuery(<span class="pl-smi">Person</span><span class="pl-k">.</span>class, <span class="pl-c1">null</span>,<span class="pl-c1">null</span>,<span class="pl-c1">null</span>, <span class="pl-c1">true</span>);
+    <span class="pl-k">if</span> (persons <span class="pl-k">!=</span> <span class="pl-c1">null</span>){
+        <span class="pl-c">/// ...</span>
+    }
+
+    <span class="pl-c">// Get a person from his identifier...</span>
+    <span class="pl-smi">Person</span> person1 <span class="pl-k">=</span> <span class="pl-smi">SGBDEngine</span><span class="pl-k">.</span>findPrimaryKeyEntity(<span class="pl-k">new</span> <span class="pl-smi">Person</span>(<span class="pl-s"><span class="pl-pds">"</span>12345678Z<span class="pl-pds">"</span></span>), <span class="pl-c1">true</span>);</pre></div>
+
+<p>And... that's all :D</p>
+
+<p><strong>If you think I've done a good job, you can consider contributing to the development of this library. <a href="https://www.paypal.me/TaRSyS">https://www.paypal.me/TaRSyS</a> </strong></p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/tarsys/TaRSySAndroidORM">TaRSySAndroidORM</a> is maintained by <a href="https://github.com/tarsys">tarsys</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+  
+  </body>
+</html>
