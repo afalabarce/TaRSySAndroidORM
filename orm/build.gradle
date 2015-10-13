@@ -1,5 +1,31 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven'
+
+def libraryVersionId = 1006
+def libraryVersionCode='1.0.0.6'
+
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = 'com.tarsys.android.orm'
+    publishedGroupId = 'com.tarsys.android.orm'
+    libraryName = 'orm'
+    artifact = 'orm'
+    libraryDescription = 'Yet another Advanced Android ORM'
+    siteUrl = 'http://tarsys.github.io/TaRSySAndroidORM/'
+    gitUrl = 'https://github.com/tarsys/TaRSySAndroidORM.git'
+
+    libraryVersion = libraryVersionCode
+
+    developerId = 'tarsys'
+    developerName = 'Antonio Fdez. A.'
+    developerEmail = 'tarsysdev@gmail.com'
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+}
+
 
 android {
     compileSdkVersion 23
@@ -8,8 +34,8 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 23
-        versionCode 1000
-        versionName "1.0.0.0"
+        versionCode libraryVersionId
+        versionName libraryVersionCode
     }
     buildTypes {
         release {
@@ -19,18 +45,15 @@ android {
     }
 }
 
-def TarsysAndroidORMAarFile = file('build/orm.aar')
-artifacts {
-    archives TarsysAndroidORMAarFile
-}
+
 
 uploadArchives {
     repositories {
         mavenDeployer {
             repository(url: "file:///Users/tarsys/Desarrollo/MavenRepo/aars")
-            pom.groupId = 'com.tarsys.android.orm'
-            pom.artifactId = 'orm'
-            pom.version = '1.0.0.0'
+            pom.groupId = publishedGroupId
+            pom.artifactId = artifact
+            pom.version = libraryVersionCode
         }
     }
 }
@@ -38,4 +61,93 @@ uploadArchives {
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.google.code.gson:gson:2.4'
+}
+
+install {
+    repositories.mavenInstaller {
+        // This generates POM.xml with proper parameters
+        pom {
+            project {
+                packaging 'aar'
+                groupId publishedGroupId
+                artifactId artifact
+
+                // Add your description here
+                name libraryName
+                description libraryDescription
+                url siteUrl
+
+                // Set your license
+                licenses {
+                    license {
+                        name licenseName
+                        url licenseUrl
+                    }
+                }
+                developers {
+                    developer {
+                        id developerId
+                        name developerName
+                        email developerEmail
+                    }
+                }
+                scm {
+                    connection gitUrl
+                    developerConnection gitUrl
+                    url siteUrl
+
+                }
+            }
+        }
+    }
+}
+
+version = libraryVersion
+
+task sourcesJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    classifier = 'sources'
+}
+
+task javadoc(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+}
+
+task javadocJar(type: Jar, dependsOn: javadoc) {
+    classifier = 'javadoc'
+    from javadoc.destinationDir
+}
+artifacts {
+    archives javadocJar
+    archives sourcesJar
+}
+
+// Bintray
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+
+bintray {
+    user = properties.getProperty("bintray.user")
+    key = properties.getProperty("bintray.apikey")
+
+    configurations = ['archives']
+    pkg {
+        repo = bintrayRepo
+        name = bintrayName
+        desc = libraryDescription
+        websiteUrl = siteUrl
+        vcsUrl = gitUrl
+        licenses = allLicenses
+        publish = true
+        publicDownloadNumbers = true
+        version {
+            desc = libraryDescription
+            gpg {
+                sign = true //Determines whether to GPG sign the files. The default is false
+                passphrase = properties.getProperty("bintray.gpg.password")
+                //Optional. The passphrase for GPG signing'
+            }
+        }
+    }
 }
