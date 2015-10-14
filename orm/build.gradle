@@ -1,15 +1,14 @@
 apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
-apply plugin: 'maven'
 
-def libraryVersionId = 1006
-def libraryVersionCode='1.0.0.6'
+def libraryVersionId = 1000
+def libraryVersionCode='1.0.0.0'
 
 ext {
     bintrayRepo = 'maven'
-    bintrayName = 'com.tarsys.android.orm'
-    publishedGroupId = 'com.tarsys.android.orm'
+    bintrayName = 'TaRSySAndroidORM'
+    publishedGroupId = 'com.github.tarsys.android'
     libraryName = 'orm'
     artifact = 'orm'
     libraryDescription = 'Yet another Advanced Android ORM'
@@ -25,7 +24,6 @@ ext {
     licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
     allLicenses = ["Apache-2.0"]
 }
-
 
 android {
     compileSdkVersion 23
@@ -45,23 +43,15 @@ android {
     }
 }
 
-
-
-uploadArchives {
-    repositories {
-        mavenDeployer {
-            repository(url: "file:///Users/tarsys/Desarrollo/MavenRepo/aars")
-            pom.groupId = publishedGroupId
-            pom.artifactId = artifact
-            pom.version = libraryVersionCode
-        }
-    }
-}
-
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     compile 'com.google.code.gson:gson:2.4'
 }
+
+group = 'com.github.tarsys.android'
+artifact = 'orm'
+version = libraryVersion
+
 
 install {
     repositories.mavenInstaller {
@@ -69,8 +59,6 @@ install {
         pom {
             project {
                 packaging 'aar'
-                groupId publishedGroupId
-                artifactId artifact
 
                 // Add your description here
                 name libraryName
@@ -102,7 +90,6 @@ install {
     }
 }
 
-version = libraryVersion
 
 task sourcesJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs
@@ -118,6 +105,7 @@ task javadocJar(type: Jar, dependsOn: javadoc) {
     classifier = 'javadoc'
     from javadoc.destinationDir
 }
+
 artifacts {
     archives javadocJar
     archives sourcesJar
