@@ -76,7 +76,7 @@ public class SGBDEngine {
                 }
             }
 
-            SGBDEngine.SQLiteDatabasePath = (isExternalStorage ? Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + databaseDirectory : "") + File.separator + databaseName;
+            SGBDEngine.SQLiteDatabasePath = (isExternalStorage ? Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + databaseDirectory : Environment.getDataDirectory().getAbsolutePath()) + File.separator + databaseName;
 
             if (!new File(SQLiteDatabasePath).exists())
                 savedAppVersion = 0;
