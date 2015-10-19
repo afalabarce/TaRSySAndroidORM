@@ -46,6 +46,8 @@
 
         &lt;<span class="pl-ent">meta-data</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>ENTITY_PACKAGES<span class="pl-pds">"</span></span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">value</span>=<span class="pl-s"><span class="pl-pds">"</span>com.tarsys.exampletarsysorm.entities<span class="pl-pds">"</span></span> /&gt;
 
+        &lt;<span class="pl-ent">meta-data</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>DB_STRING_DEFAULT_LENGTH<span class="pl-pds">"</span></span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">value</span>=<span class="pl-s"><span class="pl-pds">"</span>500<span class="pl-pds">"</span></span> /&gt;
+
         &lt;<span class="pl-ent">activity</span> <span class="pl-e">android</span><span class="pl-e">:</span><span class="pl-e">name</span>=<span class="pl-s"><span class="pl-pds">"</span>.MainActivity<span class="pl-pds">"</span></span> &gt;
 
             &lt;<span class="pl-ent">intent-filter</span>&gt;
@@ -147,6 +149,68 @@
             <span class="pl-v">this</span><span class="pl-k">.</span>lastname2 <span class="pl-k">=</span> lastname2;
         }
     }</pre></div>
+
+<p>This example can be more simple...</p>
+
+<div class="highlight highlight-source-java"><pre>    <span class="pl-k">package</span> <span class="pl-smi">com.tarsys.exampletarsysorm.entities</span>;
+
+    <span class="pl-k">import</span> <span class="pl-smi">com.github.tarsys.android.orm.annotations.DBEntity</span>;
+    <span class="pl-k">import</span> <span class="pl-smi">com.github.tarsys.android.orm.annotations.TableField</span>;
+
+    <span class="pl-c">/**</span>
+<span class="pl-c">     * Created by tarsys on 10/10/15.</span>
+<span class="pl-c">     */</span>
+    @<span class="pl-smi">DBEntity</span>
+    <span class="pl-k">public</span> <span class="pl-k">class</span> <span class="pl-en">Person</span> {
+        <span class="pl-c">//region private vars</span>
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> personalIdentification;
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> name;
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> lastname1;
+        <span class="pl-k">private</span> <span class="pl-smi">String</span> lastname2;
+
+        <span class="pl-c">//endregion</span>
+
+        <span class="pl-k">public</span> <span class="pl-en">Person</span>(){
+
+        }
+        <span class="pl-k">public</span> <span class="pl-en">Person</span>(<span class="pl-smi">String</span> <span class="pl-v">identifier</span>){
+            <span class="pl-v">this</span><span class="pl-k">.</span>personalIdentification <span class="pl-k">=</span> identifier;
+        }
+
+        <span class="pl-k">@TableField</span>(<span class="pl-c1">DataTypeLength</span> <span class="pl-k">=</span> <span class="pl-c1">30</span>, <span class="pl-c1">PrimaryKey</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>, <span class="pl-c1">NotNull</span> <span class="pl-k">=</span> <span class="pl-c1">true</span>)
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getPersonalIdentification</span>() {
+            <span class="pl-k">return</span> personalIdentification;
+        }
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setPersonalIdentification</span>(<span class="pl-smi">String</span> <span class="pl-v">personalIdentification</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>personalIdentification <span class="pl-k">=</span> personalIdentification;
+        }
+
+        <span class="pl-k">@TableField</span>
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getName</span>() {
+            <span class="pl-k">return</span> name;
+        }
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setName</span>(<span class="pl-smi">String</span> <span class="pl-v">name</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>name <span class="pl-k">=</span> name;
+        }
+
+        <span class="pl-k">@TableField</span>
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getLastname1</span>() {
+            <span class="pl-k">return</span> lastname1;
+        }
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setLastname1</span>(<span class="pl-smi">String</span> <span class="pl-v">lastname1</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>lastname1 <span class="pl-k">=</span> lastname1;
+        }
+
+        <span class="pl-k">@TableField</span>
+        <span class="pl-k">public</span> <span class="pl-smi">String</span> <span class="pl-en">getLastname2</span>() {
+            <span class="pl-k">return</span> lastname2;
+        }
+
+        <span class="pl-k">public</span> <span class="pl-k">void</span> <span class="pl-en">setLastname2</span>(<span class="pl-smi">String</span> <span class="pl-v">lastname2</span>) {
+            <span class="pl-v">this</span><span class="pl-k">.</span>lastname2 <span class="pl-k">=</span> lastname2;
+        }
+    }
+</pre></div>
 
 <p>And... finally... how to use it?</p>
 
