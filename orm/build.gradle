@@ -1,9 +1,9 @@
 apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
-
-def libraryVersionId = 1001
-def libraryVersionCode='1.0.0.1'
+apply plugin: 'maven'
+def libraryVersionId = 1002
+def libraryVersionCode='1.0.0.2'
 
 ext {
     bintrayRepo = 'maven'
@@ -52,6 +52,22 @@ group = 'com.github.tarsys.android'
 artifact = 'orm'
 version = libraryVersion
 
+def TaRSySAndroidORMAarFile = file('build/orm.aar')
+artifacts {
+    archives TaRSySAndroidORMAarFile
+}
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            repository(url: "file:///Users/tarsys/Desarrollo/MavenRepo/aars")
+            pom.groupId = 'com.github.tarsys.android'
+            pom.artifactId = artifact
+            pom.version = libraryVersion
+        }
+    }
+}
+
 
 install {
     repositories.mavenInstaller {
@@ -89,7 +105,6 @@ install {
         }
     }
 }
-
 
 task sourcesJar(type: Jar) {
     from android.sourceSets.main.java.srcDirs

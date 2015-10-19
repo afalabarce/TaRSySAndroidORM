@@ -26,8 +26,10 @@ import com.github.tarsys.android.orm.sqlite.SQLiteSupport;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -47,6 +49,7 @@ import dalvik.system.PathClassLoader;
  */
 public class SGBDEngine {
     public static String SQLiteDatabasePath;
+    protected static ApplicationInfo applicationInfo;
 
     public static boolean Initialize(Context context){
         boolean returnValue = false;
@@ -58,15 +61,15 @@ public class SGBDEngine {
 
         try {
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
-            ApplicationInfo appInfo = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+            SGBDEngine.applicationInfo = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
             PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
 
             int savedAppVersion = sharedPreferences.getInt("AppVersion", 0),
                 actualAppVersion = packageInfo.versionCode;
-            isExternalStorage = appInfo.metaData.getBoolean("IS_EXTERNALSTORAGE", false);
-            databaseDirectory = appInfo.metaData.getString("DATABASE_DIRECTORY", "");
-            databaseName = appInfo.metaData.getString("DATABASE_NAME", context.getPackageName() + ".db");
-            String containers = appInfo.metaData.getString("ENTITY_PACKAGES", "").replace(" ","");
+            isExternalStorage = SGBDEngine.applicationInfo.metaData.getBoolean("IS_EXTERNALSTORAGE", false);
+            databaseDirectory = SGBDEngine.applicationInfo.metaData.getString("DATABASE_DIRECTORY", "");
+            databaseName = SGBDEngine.applicationInfo.metaData.getString("DATABASE_NAME", context.getPackageName() + ".db");
+            String containers = SGBDEngine.applicationInfo.metaData.getString("ENTITY_PACKAGES", "").replace(" ","");
             if (isExternalStorage){
                 if (!new File(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + databaseDirectory).exists())
                 {
@@ -131,6 +134,230 @@ public class SGBDEngine {
 
     //region Methods for Data Object Model creation
 
+    protected static String tableName(Class<?> classType){
+        String returnValue = "";
+
+        DBEntity dbEntity = classType.getAnnotation(DBEntity.class);
+
+        if (dbEntity != null)
+            returnValue = !dbEntity.TableName().isEmpty() ? dbEntity.TableName() : classType.getSimpleName().toLowerCase();
+
+
+        return returnValue;
+    }
+
+    protected static TableField tableFieldFromMethod(final Method getterMethod){
+
+        final String fieldName = SGBDEngine.fieldName(getterMethod);
+        final DBDataType dbDataType = SGBDEngine.fieldDataType(getterMethod);
+        final int dbDataTypeLength = SGBDEngine.fieldDataTypeLength(getterMethod);
+        final Class<?> entityClass = SGBDEngine.fieldEntityClass(getterMethod);
+        final TableField tableField = getterMethod.getAnnotation(TableField.class);
+
+        TableField returnValue = tableField == null ? null : new TableField(){
+
+            @Override
+            public Class<? extends Annotation> annotationType() {
+                return tableField.annotationType();
+            }
+
+            @Override
+            public String FieldName() {
+                return fieldName;
+            }
+
+            @Override
+            public String Description() {
+                return tableField.Description();
+            }
+
+            @Override
+            public DBDataType DataType() {
+                return dbDataType;
+            }
+
+            @Override
+            public int DataTypeLength() {
+                return dbDataTypeLength;
+            }
+
+            @Override
+            public Class<?> EntityClass() {
+                return entityClass;
+            }
+
+
+            @Override
+            public String DefaultValue() {
+                return tableField.DefaultValue();
+            }
+
+            @Override
+            public boolean PrimaryKey() {
+                return tableField.PrimaryKey();
+            }
+
+            @Override
+            public String ForeignKeyName() {
+                return tableField.ForeignKeyName();
+            }
+
+            @Override
+            public String ForeignKeyTableName() {
+                return tableField.ForeignKeyTableName();
+            }
+
+            @Override
+            public String ForeignKeyFieldName() {
+                return tableField.ForeignKeyFieldName();
+            }
+
+            @Override
+            public boolean NotNull() {
+                return tableField.NotNull();
+            }
+
+            @Override
+            public boolean CascadeDelete() {
+                return tableField.CascadeDelete();
+            }
+
+            @Override
+            public boolean AutoIncrement() {
+                return tableField.AutoIncrement();
+            }
+        };
+
+        return returnValue;
+    }
+
+    protected static String fieldName(Method getterMethod){
+        String returnValue = "";
+
+        if (getterMethod != null){
+            TableField tableField = getterMethod.getAnnotation(TableField.class);
+            if (tableField != null){
+                returnValue = !tableField.FieldName().isEmpty() ? tableField.FieldName() : "";
+                if (returnValue.isEmpty()){
+                    if (getterMethod.getName().startsWith("get"))
+                        returnValue = getterMethod.getName().substring(3).toLowerCase();
+                    else if (getterMethod.getName().startsWith("is"))
+                        returnValue = getterMethod.getName().substring(2).toLowerCase();
+                }
+            }
+        }
+
+        return returnValue;
+    }
+
+    protected static DBDataType fieldDataType(Method getterMethod){
+        DBDataType returnValue = DBDataType.None;
+
+        if (getterMethod != null) {
+            TableField tableField = getterMethod.getAnnotation(TableField.class);
+            if (tableField != null) {
+                if (tableField.DataType() != DBDataType.None)
+                    returnValue = tableField.DataType();
+                else{
+                    Class methodReturnType = getterMethod.getReturnType();
+
+                    if (methodReturnType == Boolean.class)
+                        returnValue = DBDataType.BooleanDataType;
+                    if (methodReturnType == Integer.class)
+                        returnValue = DBDataType.IntegerDataType;
+                    if (methodReturnType == Long.class)
+                        returnValue = DBDataType.LongDataType;
+                    if (methodReturnType == Double.class)
+                        returnValue = DBDataType.RealDataType;
+                    if (methodReturnType == String.class)
+                        returnValue = DBDataType.StringDataType;
+                    if (methodReturnType == Date.class)
+                        returnValue = DBDataType.DateDataType;
+                    if (methodReturnType.isEnum())
+                        returnValue = DBDataType.EnumDataType;
+                    if (methodReturnType.getAnnotation(DBEntity.class) != null)
+                        returnValue = DBDataType.EntityDataType;
+                    if (methodReturnType.isAssignableFrom(ArrayList.class)){
+                        if (getterMethod.getGenericReturnType() != null && getterMethod.getGenericReturnType() instanceof ParameterizedType) {
+                            ParameterizedType parameterizedType = (ParameterizedType) getterMethod.getGenericReturnType();
+                            if (parameterizedType != null && parameterizedType.getActualTypeArguments().length > 0 &&
+                                parameterizedType.getActualTypeArguments()[0].getClass().getAnnotation(DBEntity.class) != null)
+                                returnValue = DBDataType.EntityListDataType;
+                        }
+                    }
+                }
+            }
+        }
+
+        return returnValue;
+    }
+
+    protected static int fieldDataTypeLength(Method getterMethod){
+        int returnValue = 0;
+
+        if (getterMethod != null) {
+            TableField tableField = getterMethod.getAnnotation(TableField.class);
+            if (tableField != null) {
+                if (tableField.DataType() == DBDataType.StringDataType){
+                    returnValue = tableField.DataTypeLength();
+
+                    if (returnValue == 0){
+                        // get the default value from metadata
+                        returnValue = SGBDEngine.applicationInfo.metaData.getInt("DB_STRING_DEFAULT_LENGTH",250);
+                    }
+                }
+            }
+        }
+
+        return returnValue;
+    }
+
+    protected static Class<?> fieldEntityClass(Method getterMethod){
+        Class<?> returnValue = null;
+
+        DBDataType dbDataType = SGBDEngine.fieldDataType(getterMethod);
+        if (dbDataType == DBDataType.EntityDataType){
+            if (getterMethod.getReturnType().getAnnotation(DBEntity.class) != null)
+                returnValue = getterMethod.getReturnType();
+        }else if (dbDataType == DBDataType.EntityListDataType){
+            if (getterMethod.getGenericReturnType() instanceof  ParameterizedType){
+                returnValue = ((ParameterizedType) getterMethod.getGenericReturnType()).getClass();
+            }
+        }
+
+        return returnValue;
+    }
+
+    protected static DBEntity dbEntityFromClass(final Class<?> classEntity){
+        DBEntity returnValue = null;
+        DBEntity dbEntityTmp;
+        if ((dbEntityTmp = classEntity.getAnnotation(DBEntity.class)) != null){
+            if (dbEntityTmp.TableName().isEmpty()){
+                returnValue = new DBEntity(){
+
+                    @Override
+                    public Class<? extends Annotation> annotationType() {
+                        return classEntity.getAnnotation(DBEntity.class).annotationType();
+                    }
+
+                    @Override
+                    public String TableName() {
+                        return classEntity.getSimpleName().toLowerCase();
+                    }
+
+                    @Override
+                    public String Description() {
+                        return classEntity.getAnnotation(DBEntity.class).Description();
+                    }
+                };
+            }else{
+                returnValue = dbEntityTmp;
+            }
+        }
+
+        return returnValue;
+    }
+
     protected static String nameSetMethod(Method getMethod){
         String retorno = getMethod.getName();
 
@@ -142,39 +369,40 @@ public class SGBDEngine {
     }
     
     protected static ArrayList<DBTable> createDBTableEntity(Class<?> tipo){
-        ArrayList<DBTable> retorno = new ArrayList<>();
-        DBEntity tablaBD = tipo.getAnnotation(DBEntity.class);
+        ArrayList<DBTable> returnValue = new ArrayList<>();
+        DBEntity tablaBD = SGBDEngine.dbEntityFromClass(tipo);
 
         if (tablaBD != null){
             // si tenemos clase y tiene el decorado DBEntity
-            DBTable tabla = new DBTable();
-            tabla.Table = tablaBD;
-            tabla.Indexes = new ArrayList<Index>();
-            tabla.Fields = new ArrayList<TableField>();
-            Method[]metodos = tipo.getMethods();
-            for(Method metodo : metodos){
-                TableField campoTabla = metodo.getAnnotation(TableField.class);
-                if (campoTabla != null){
-                    if (campoTabla.DataType() == DBDataType.EntityDataType || campoTabla.DataType() == DBDataType.EntityListDataType){
+            DBTable dbTable = new DBTable();
+            dbTable.Table = tablaBD;
+            dbTable.Indexes = new ArrayList<Index>();
+            dbTable.Fields = new ArrayList<TableField>();
+            Method[]methods = tipo.getMethods();
+            for(Method method : methods){
+                TableField tableField = SGBDEngine.tableFieldFromMethod(method);
+
+                if (tableField != null && !tableField.FieldName().isEmpty()){
+                    if (tableField.DataType() == DBDataType.EntityDataType || tableField.DataType() == DBDataType.EntityListDataType){
                         // Si el tipo de dato es de tipo entidad o lista de entidades, debemos crear la tabla correspondiente a la entidad
                         // ANTES que la que está en curso... esto se hará de forma recursiva...
-                        Class<?> tipoCampo = campoTabla.DataType() == DBDataType.EntityDataType ? metodo.getReturnType(): metodo.getGenericReturnType().getClass();
+                        Class<?> tipoCampo = tableField.DataType() == DBDataType.EntityDataType ? method.getReturnType(): method.getGenericReturnType().getClass();
 
                         if (tipoCampo != null){
-                            retorno.addAll(SGBDEngine.createDBTableEntity(tipoCampo));
+                            returnValue.addAll(SGBDEngine.createDBTableEntity(tipoCampo));
                         }
                     }
-                    tabla.Fields.add(campoTabla);
+                    dbTable.Fields.add(tableField);
                 }
             }
-            Indexes indices = tipo.getAnnotation(Indexes.class);
-            if (indices != null && indices.value() != null){
-                tabla.Indexes.addAll(Arrays.asList(indices.value()));
+            Indexes indexes = tipo.getAnnotation(Indexes.class);
+            if (indexes != null && indexes.value() != null){
+                dbTable.Indexes.addAll(Arrays.asList(indexes.value()));
             }
-            retorno.add(tabla);
+            returnValue.add(dbTable);
         }
 
-        return retorno;
+        return returnValue;
     }
 
     protected static ArrayList<DBTable> createDatabaseModel(Context context, String packageName){
@@ -271,9 +499,9 @@ public class SGBDEngine {
     protected static boolean entityWithEntities(Class<?> classValue){
         boolean retorno = false;
 
-        if (classValue.getAnnotation(DBEntity.class) != null){
+        if (SGBDEngine.dbEntityFromClass(classValue) != null){
             for(Method m : classValue.getMethods()){
-                TableField campo = m.getAnnotation(TableField.class);
+                TableField campo = SGBDEngine.tableFieldFromMethod(m);
                 if (retorno = (campo != null && (campo.DataType() == DBDataType.EntityDataType || campo.DataType() == DBDataType.EntityListDataType))) break;
             }
         }
@@ -283,10 +511,10 @@ public class SGBDEngine {
     protected static ArrayList<String> getPrimaryKeyFieldNames(Class<?> clase){
         ArrayList<String> retorno = new ArrayList<String>();
 
-        if (clase.getAnnotation(DBEntity.class) != null){
+        if (SGBDEngine.dbEntityFromClass(clase) != null){
             for (Method m: clase.getMethods()){
                 TableField cmp;
-                if ((cmp = m.getAnnotation(TableField.class)) != null && cmp.PrimaryKey()){
+                if ((cmp = SGBDEngine.tableFieldFromMethod(m)) != null && cmp.PrimaryKey()){
                     if (cmp.DataType() == DBDataType.EntityDataType || cmp.DataType() == DBDataType.EntityListDataType) continue;
 
                     retorno.add((cmp.DataType() != DBDataType.DateDataType ? "" : SQLiteSupport.PREFIX_DATE_FIELD) + cmp.FieldName());
@@ -299,9 +527,9 @@ public class SGBDEngine {
 
     protected static HashMap<TableField,Method> primaryKeyMethods(Class<?> clase, boolean metodosInsercion){
         HashMap<TableField,Method> retorno = new HashMap<TableField,Method>();
-        if (clase.getAnnotation(DBEntity.class) != null){
+        if (SGBDEngine.dbEntityFromClass(clase) != null){
             for(Method m : clase.getMethods()){
-                TableField campo = m.getAnnotation(TableField.class);
+                TableField campo =  SGBDEngine.tableFieldFromMethod(m);
                 if (campo != null && campo.PrimaryKey()){
                     if (!metodosInsercion){
                         retorno.put(campo,m);
@@ -320,11 +548,11 @@ public class SGBDEngine {
     protected static <T>ContentValues foreignKeysContentValues(T foreignKeyEntity){
         ContentValues retorno = null;
         DBEntity tEntidad = null;
-        if ((tEntidad = foreignKeyEntity.getClass().getAnnotation(DBEntity.class)) != null){
+        if ((tEntidad =  SGBDEngine.dbEntityFromClass(foreignKeyEntity.getClass())) != null){
             retorno = new ContentValues();
             for(Method m : foreignKeyEntity.getClass().getMethods()){
                 try{
-                    TableField tCampo = m.getAnnotation(TableField.class);
+                    TableField tCampo = SGBDEngine.tableFieldFromMethod(m);
                     if (tCampo != null && tCampo.PrimaryKey() && tCampo.DataType() != DBDataType.EntityDataType && tCampo.DataType() != DBDataType.EntityListDataType){
                         String nCampo = tEntidad.TableName() + "_" + (tCampo.DataType() == DBDataType.DateDataType ? SQLiteSupport.PREFIX_DATE_FIELD : "") + tCampo.FieldName();
                         Object valorCampo = m.invoke(foreignKeyEntity);
@@ -363,9 +591,9 @@ public class SGBDEngine {
         ArrayList<String> retorno = new ArrayList<String>();
 
         DBEntity eBd;
-        if ((eBd = classValue.getAnnotation(DBEntity.class)) != null){
+        if ((eBd = SGBDEngine.dbEntityFromClass(classValue)) != null){
             for(Method m : classValue.getMethods()){
-                TableField campo = m.getAnnotation(TableField.class);
+                TableField campo = SGBDEngine.tableFieldFromMethod(m);
                 DBEntity eBdFk = null;
 
                 if (campo != null && campo.DataType() == DBDataType.EntityListDataType && (eBdFk = campo.EntityClass().getAnnotation(DBEntity.class)) != null){
@@ -403,12 +631,12 @@ public class SGBDEngine {
         DBEntity datoTabla;
         try{
 
-            if ((datoTabla = entity.getClass().getAnnotation(DBEntity.class)) != null){
+            if ((datoTabla = SGBDEngine.dbEntityFromClass(entity.getClass())) != null){
                 String clausulaWhere = "";
                 ArrayList<String> datosWhere = new ArrayList<String>();
 
                 for (Method metodo : entity.getClass().getMethods()){
-                    TableField campoTabla = metodo.getAnnotation(TableField.class);
+                    TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                     if (campoTabla != null){
                         if (campoTabla.PrimaryKey()){
                             if (!clausulaWhere.trim().isEmpty()){
@@ -492,12 +720,12 @@ public class SGBDEngine {
 
         try{
 
-            if ((datoTabla = clase.getAnnotation(DBEntity.class)) != null){
+            if ((datoTabla = SGBDEngine.dbEntityFromClass(clase)) != null){
                 String clausulaWhere = "";
                 ArrayList<String> datosWhere = new ArrayList<String>();
 
                 for (Method metodo : clase.getMethods()){
-                    TableField campoTabla = metodo.getAnnotation(TableField.class);
+                    TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                     if (campoTabla != null){
                         if (campoTabla.PrimaryKey()){
                             String campoEx = (campoTabla.DataType() == DBDataType.DateDataType ? SQLiteSupport.PREFIX_DATE_FIELD : "") + campoTabla.FieldName();
@@ -545,10 +773,10 @@ public class SGBDEngine {
         T retorno = null;
         DBEntity datoTabla;
 
-        if ((datoTabla = clase.getAnnotation(DBEntity.class)) != null){
+        if ((datoTabla = SGBDEngine.dbEntityFromClass(clase)) != null){
             ArrayList<Method> metodosPK = new ArrayList<Method>();
             for (Method metodo : clase.getMethods()){
-                TableField campoTabla = metodo.getAnnotation(TableField.class);
+                TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                 if (campoTabla != null){
                     if (campoTabla.PrimaryKey()){
                         metodosPK.add(metodo);
@@ -560,7 +788,7 @@ public class SGBDEngine {
                 try {
                     retorno = clase.newInstance();
                     for(Method metodo : metodosPK){
-                        TableField campoTabla = metodo.getAnnotation(TableField.class);
+                        TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                         String nCampoCursor = datoTabla.TableName().toLowerCase() + "_" + (campoTabla.DataType() == DBDataType.DateDataType ? SQLiteSupport.PREFIX_DATE_FIELD : "") + campoTabla.FieldName();
                         Object valorCampo = null;
                         switch (campoTabla.DataType()){
@@ -617,7 +845,7 @@ public class SGBDEngine {
 
         DBEntity DBEntity;
 
-        if ((DBEntity = primaryKeyEntity.getClass().getAnnotation(DBEntity.class)) != null){
+        if ((DBEntity = SGBDEngine.dbEntityFromClass(primaryKeyEntity.getClass())) != null){
             String tableName = DBEntity.TableName();
 
             PrimaryFilter primaryKeyFilter = SGBDEngine.createPrimaryKeyFilter(primaryKeyEntity, false);
@@ -630,7 +858,7 @@ public class SGBDEngine {
                             try{
                                 returnValue = (T) primaryKeyEntity.getClass().newInstance();
                                 for (Method method : primaryKeyEntity.getClass().getMethods()){
-                                    TableField campoTabla = method.getAnnotation(TableField.class);
+                                    TableField campoTabla = SGBDEngine.tableFieldFromMethod(method);
                                     if (campoTabla != null){
                                         Method metodoIns = primaryKeyEntity.getClass().getMethod(SGBDEngine.nameSetMethod(method), method.getReturnType());
                                         if (metodoIns != null){
@@ -683,7 +911,7 @@ public class SGBDEngine {
                                                 {
                                                     //Comprobamos que realmente es una entidad BD...
                                                     DBEntity tipoClaseEntidad = null;
-                                                    if ((tipoClaseEntidad = method.getReturnType().getAnnotation(DBEntity.class)) != null){
+                                                    if ((tipoClaseEntidad = SGBDEngine.dbEntityFromClass(method.getReturnType())) != null){
                                                         // Preparamos una lectura, en función de los filtros por clave primaria...
                                                         Object entidadClaveExterna = SGBDEngine.createForeignKeyEntity(method.getReturnType(), query);
 
@@ -694,11 +922,10 @@ public class SGBDEngine {
                                                 case EntityListDataType:
                                                 {
                                                     if (recursiveLoad){
-                                                        DBEntity tipoClaseEntidad = campoTabla.EntityClass().getAnnotation(DBEntity.class);
+                                                        DBEntity tipoClaseEntidad = SGBDEngine.dbEntityFromClass(campoTabla.EntityClass());
                                                         Class<?> tipoRetorno = method.getReturnType();
 
-                                                        if ((tipoRetorno.isArray() || tipoRetorno == ArrayList.class) &&
-                                                                tipoClaseEntidad != null){
+                                                        if ((tipoRetorno.isArray() || tipoRetorno == ArrayList.class) && tipoClaseEntidad != null){
                                                             ArrayList<Object> arrayEntidades = new ArrayList<Object>();
                                                             // Si el método devuelve un array, agregaremos todos los elementos que cumplan la clave externa...
                                                             String nTablaRel = "rel_" + tableName.toLowerCase() + "_" + tipoClaseEntidad.TableName().toLowerCase();
@@ -770,7 +997,7 @@ public class SGBDEngine {
         try{
             DBEntity DBEntity;
             SQLiteDatabase bd = SGBDEngine.SQLiteDataBase(true);
-            if ((DBEntity = entityClass.getAnnotation(DBEntity.class)) != null){
+            if ((DBEntity = SGBDEngine.dbEntityFromClass(entityClass)) != null){
                 String nombreTabla = DBEntity.TableName();
 
                 if (bd != null && bd.isOpen()){
@@ -970,7 +1197,7 @@ public class SGBDEngine {
             Log.e("EliminarEntidadPK", "Base de datos abierta en modo solo lectura, no se puede ejecutar la operación de elimnación");
         }else{
             DBEntity DBEntity;
-            if ((DBEntity = primaryKeyEntity.getClass().getAnnotation(DBEntity.class)) != null){
+            if ((DBEntity = SGBDEngine.dbEntityFromClass(primaryKeyEntity.getClass())) != null){
                 String nombreTabla = DBEntity.TableName();
 
                 PrimaryFilter filtroPrimario = SGBDEngine.createPrimaryKeyFilter(primaryKeyEntity, false);
@@ -1023,7 +1250,7 @@ public class SGBDEngine {
         }else{
 
             DBEntity DBEntity = null;
-            if ((DBEntity = primaryKeyEntity.getClass().getAnnotation(DBEntity.class)) != null){
+            if ((DBEntity = SGBDEngine.dbEntityFromClass(primaryKeyEntity.getClass())) != null){
                 String nombreTabla = DBEntity.TableName();
 
                 PrimaryFilter filtroPrimario = SGBDEngine.createPrimaryKeyFilter(primaryKeyEntity, false);
@@ -1039,7 +1266,7 @@ public class SGBDEngine {
                         ArrayList<TableField> clsListaEntidad = new ArrayList<TableField>();
 
                         for(Method m : primaryKeyEntity.getClass().getMethods()){
-                            TableField campoTabla = m.getAnnotation(TableField.class);
+                            TableField campoTabla = SGBDEngine.tableFieldFromMethod(m);
                             if (campoTabla != null && !campoTabla.AutoIncrement()){
                                 try{
                                     Object valorCampo = m.invoke(primaryKeyEntity);
@@ -1077,7 +1304,7 @@ public class SGBDEngine {
                                         case EntityDataType:
                                             // hay que agregar a los valores los campos de la clave primaria
                                             DBEntity eBdCampoE = null;
-                                            if ((eBdCampoE = valorCampo.getClass().getAnnotation(DBEntity.class)) != null) {
+                                            if ((eBdCampoE = SGBDEngine.dbEntityFromClass(valorCampo.getClass())) != null) {
                                                 camposEntidad.add(valorCampo);
                                                 ContentValues v = SGBDEngine.foreignKeysContentValues(valorCampo);
                                                 if (v != null) valores.putAll(v);
@@ -1130,7 +1357,7 @@ public class SGBDEngine {
                                 Method metodoIns = null;
 
                                 if (autoincrementado != null){
-                                    TableField campoTabla = autoincrementado.getAnnotation(TableField.class);
+                                    TableField campoTabla = SGBDEngine.tableFieldFromMethod(autoincrementado);
                                     long id = (Long)autoincrementado.invoke(primaryKeyEntity);
                                     if (id > 0) valores.put(campoTabla.FieldName(), id);
                                     metodoIns = primaryKeyEntity.getClass().getMethod(SGBDEngine.nameSetMethod(autoincrementado), autoincrementado.getReturnType());
@@ -1162,7 +1389,7 @@ public class SGBDEngine {
                             // Borramos de las tablas relacionales y las entidades aquellos elementos que no están en la lista...
                             PrimaryFilter fFG = SGBDEngine.createPrimaryKeyFilter(primaryKeyEntity, true);
                             for(TableField fk : clsListaEntidad){
-                                String nombreTablaExt = fk.EntityClass().getAnnotation(DBEntity.class).TableName();
+                                String nombreTablaExt = SGBDEngine.dbEntityFromClass(fk.EntityClass()).TableName();
                                 String nombreTablaRel = "rel_" + DBEntity.TableName() + "_" + nombreTablaExt;
                                 String filtro = fFG.FilterString;
 
@@ -1187,7 +1414,7 @@ public class SGBDEngine {
                         // por último, las que proceden de un list...
                         if (retorno && camposListaEntidad.size() > 0){
                             for(Object c : camposListaEntidad){
-                                String nombreTablaRel = "rel_" + DBEntity.TableName() + "_" + c.getClass().getAnnotation(DBEntity.class).TableName();
+                                String nombreTablaRel = "rel_" + DBEntity.TableName() + "_" + SGBDEngine.dbEntityFromClass(c.getClass()).TableName();
 
                                 // Primero guardamos la entidad externa...
                                 retorno = SGBDEngine.saveEntity(bd, c, true);
