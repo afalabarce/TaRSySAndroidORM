@@ -137,7 +137,7 @@ public class SGBDEngine {
     protected static String tableName(Class<?> classType){
         String returnValue = "";
 
-        DBEntity dbEntity = classType.getAnnotation(DBEntity.class);
+        DBEntity dbEntity = SGBDEngine.dbEntityFromClass(classType);
 
         if (dbEntity != null)
             returnValue = !dbEntity.TableName().isEmpty() ? dbEntity.TableName() : classType.getSimpleName().toLowerCase();
@@ -235,7 +235,7 @@ public class SGBDEngine {
         String returnValue = "";
 
         if (getterMethod != null){
-            TableField tableField = getterMethod.getAnnotation(TableField.class);
+            TableField tableField =  getterMethod.getAnnotation(TableField.class);
             if (tableField != null){
                 returnValue = !tableField.FieldName().isEmpty() ? tableField.FieldName() : "";
                 if (returnValue.isEmpty()){
@@ -281,7 +281,7 @@ public class SGBDEngine {
                         if (getterMethod.getGenericReturnType() != null && getterMethod.getGenericReturnType() instanceof ParameterizedType) {
                             ParameterizedType parameterizedType = (ParameterizedType) getterMethod.getGenericReturnType();
                             if (parameterizedType != null && parameterizedType.getActualTypeArguments().length > 0 &&
-                                parameterizedType.getActualTypeArguments()[0].getClass().getAnnotation(DBEntity.class) != null)
+                                    ((Class)parameterizedType.getActualTypeArguments()[0]).getAnnotation(DBEntity.class) != null)
                                 returnValue = DBDataType.EntityListDataType;
                         }
                     }
@@ -320,8 +320,8 @@ public class SGBDEngine {
             if (getterMethod.getReturnType().getAnnotation(DBEntity.class) != null)
                 returnValue = getterMethod.getReturnType();
         }else if (dbDataType == DBDataType.EntityListDataType){
-            if (getterMethod.getGenericReturnType() instanceof  ParameterizedType){
-                returnValue = ((ParameterizedType) getterMethod.getGenericReturnType()).getClass();
+            if (getterMethod.getGenericReturnType() instanceof  ParameterizedType && ((ParameterizedType) getterMethod.getGenericReturnType()).getActualTypeArguments().length > 0){
+                returnValue = (Class<?>)((ParameterizedType) getterMethod.getGenericReturnType()).getActualTypeArguments()[0];
             }
         }
 
@@ -420,7 +420,7 @@ public class SGBDEngine {
                 if (s.startsWith(packageName)){
 
                     Class<?> classTable = cLoader.loadClass(s);
-                    DBEntity databaseHeader = classTable.getAnnotation(DBEntity.class);
+                    DBEntity databaseHeader = SGBDEngine.dbEntityFromClass(classTable);
 
                     if (databaseHeader != null){
                         ArrayList<DBTable> tablas = SGBDEngine.createDBTableEntity(classTable);
@@ -471,13 +471,13 @@ public class SGBDEngine {
             // Si la entidad tiene entidades, recargaremos la entidad, para garantizarnos que tenemos el objeto completo...
             for(Method m : entity.getClass().getMethods()){
                 try{
-                    TableField campoTabla = m.getAnnotation(TableField.class);
+                    TableField campoTabla = SGBDEngine.tableFieldFromMethod(m);
                     if (campoTabla == null) continue;
                     if (campoTabla.DataType() != DBDataType.EntityDataType && campoTabla.DataType() != DBDataType.EntityListDataType) continue;
                     if (!includeWithoutCascadeDelete && !campoTabla.CascadeDelete()) continue;
                     Object e = m.invoke(entity);
                     if (campoTabla.DataType() == DBDataType.EntityDataType) {
-                        if (e != null && e.getClass().getAnnotation(DBEntity.class) != null) returnValue.add(e);
+                        if (e != null && SGBDEngine.dbEntityFromClass(e.getClass()) != null) returnValue.add(e);
                     }else if (campoTabla.DataType() == DBDataType.EntityListDataType && (e.getClass().isArray() || e.getClass() == ArrayList.class)){
                         returnValue.addAll((ArrayList<Object>) e);
                     }
@@ -596,7 +596,7 @@ public class SGBDEngine {
                 TableField campo = SGBDEngine.tableFieldFromMethod(m);
                 DBEntity eBdFk = null;
 
-                if (campo != null && campo.DataType() == DBDataType.EntityListDataType && (eBdFk = campo.EntityClass().getAnnotation(DBEntity.class)) != null){
+                if (campo != null && campo.DataType() == DBDataType.EntityListDataType && (eBdFk = SGBDEngine.dbEntityFromClass(campo.EntityClass())) != null){
                     if (!addWithoutCascadeDelete && !campo.CascadeDelete()) continue;
                     retorno.add("rel_" + eBd.TableName() + "_" + eBdFk.TableName());
                 }

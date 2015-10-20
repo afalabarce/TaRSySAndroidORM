@@ -69,7 +69,7 @@ public class DBTable {
                     primaryKeyFields.add(field.FieldName());
                 }else if (field.DataType() == DBDataType.EntityDataType){
                     // Si la clave primaria está formada por una entidad, entonces la clave primaria estár formada por los campos identificadores de la entidad
-                    DBEntity eBdPKEnt = field.EntityClass().getAnnotation(DBEntity.class);
+                    DBEntity eBdPKEnt = SGBDEngine.dbEntityFromClass(field.EntityClass());
                     ArrayList<String> camposPKEntidad = SGBDEngine.getPrimaryKeyFieldNames(field.EntityClass());
                     for(String cmpPKEnt : camposPKEntidad){
                         primaryKeyFields.add(eBdPKEnt.TableName() + "_" + cmpPKEnt);
@@ -90,7 +90,7 @@ public class DBTable {
 
                 // Si el campo es de tipo entidad, se crean tantos campos con el nombre del campo nombretablaexterna_nombrecampopkentablaexterna
                 ArrayList<DBTable> tablasEntidad = SGBDEngine.createDBTableEntity(field.EntityClass());
-                DBEntity eBd = field.EntityClass().getAnnotation(DBEntity.class);
+                DBEntity eBd = SGBDEngine.dbEntityFromClass(field.EntityClass());
                 for(DBTable tbl : tablasEntidad){
                     if (tbl.Table.TableName().equalsIgnoreCase(eBd.TableName())){
                         // Una vez tenemos la tabla,  crearemos los campos en función de la clave primaria...
@@ -113,7 +113,7 @@ public class DBTable {
                 //region EntityList Fields creation
 
                 ArrayList<DBTable> entityTables = SGBDEngine.createDBTableEntity(field.EntityClass());
-                DBEntity eBd = field.EntityClass().getAnnotation(DBEntity.class);
+                DBEntity eBd =  SGBDEngine.dbEntityFromClass(field.EntityClass());
                 for(DBTable tbl : entityTables){
                     if (tbl.Table.TableName().equalsIgnoreCase(eBd.TableName())){
                         returnValue.add(this.sqlCreationForeignKey(tbl));
@@ -153,7 +153,7 @@ public class DBTable {
                     }
                     //endregion
                 }else{
-                    DBEntity eBd = campo.EntityClass().getAnnotation(DBEntity.class);
+                    DBEntity eBd = SGBDEngine.dbEntityFromClass(campo.EntityClass());
                     ArrayList<DBTable> entityTables = SGBDEngine.createDBTableEntity(campo.EntityClass());
 
                     if (campo.EntityClass().getAnnotation(DBEntity.class) != null){
