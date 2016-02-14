@@ -52,7 +52,7 @@ public class SGBDEngine {
     public static String SQLiteDatabasePath;
     protected static ApplicationInfo applicationInfo;
 
-    public static boolean Initialize(Context context){
+    public static boolean Initialize(Context context, String containers){
         boolean returnValue = false;
 
         boolean isExternalStorage = false;
@@ -66,11 +66,11 @@ public class SGBDEngine {
             PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
 
             int savedAppVersion = sharedPreferences.getInt("AppVersion", 0),
-                actualAppVersion = packageInfo.versionCode;
+                    actualAppVersion = packageInfo.versionCode;
             isExternalStorage = SGBDEngine.applicationInfo.metaData.getBoolean("IS_EXTERNALSTORAGE", false);
             databaseDirectory = SGBDEngine.applicationInfo.metaData.getString("DATABASE_DIRECTORY", "");
             databaseName = SGBDEngine.applicationInfo.metaData.getString("DATABASE_NAME", context.getPackageName() + ".db");
-            String containers = SGBDEngine.applicationInfo.metaData.getString("ENTITY_PACKAGES", "").replace(" ","");
+
             if (isExternalStorage){
                 if (!new File(Environment.getExternalStorageDirectory().getAbsolutePath() + File.separator + databaseDirectory).exists())
                 {
@@ -110,6 +110,11 @@ public class SGBDEngine {
             returnValue = false;
         }
         return returnValue;
+    }
+
+    public static boolean Initialize(Context context){
+        String containers = SGBDEngine.applicationInfo.metaData.getString("ENTITY_PACKAGES", "").replace(" ","");
+        return SGBDEngine.Initialize(context, containers);
     }
 
     public static SQLiteDatabase SQLiteDataBase(boolean readOnly){
