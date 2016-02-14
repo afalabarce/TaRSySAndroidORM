@@ -30,6 +30,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -1172,6 +1173,145 @@ public class SGBDEngine {
         }
 
         return retorno;
+    }
+
+
+    public static <T> ArrayList<T> filterObjectQuery (Class<T> entityClass, HashMap<String,Object> filters, HashMap<String,String> orderBy, boolean recursiveLoad ) throws NoSuchMethodException {
+        ArrayList<T> returnValue = new ArrayList<T>();
+
+        String whereClause = "",
+               orderByClause = "";
+        ArrayList<String>whereValues = new ArrayList<>();
+
+        for(String whereKey : filters.keySet()){
+            whereClause += (whereClause.isEmpty() ?  "" : " and ");
+
+            TableField field = entityClass.getMethod(whereKey).getAnnotation(TableField.class);
+            if (field != null) {
+
+                String fieldName = SGBDEngine.fieldName(entityClass.getMethod(whereKey));
+                Object filterValue = filters.get(whereKey);
+
+                if (filterValue.getClass().isArray() && ((Object[]) filterValue).length == 2) {
+                    //region Between...
+                    whereClause += fieldName + " between ? and ?";
+
+                    String whereValue = "";
+                    Object item0 = ((Object [])filterValue)[0],
+                           item1 = ((Object [])filterValue)[1];
+                    switch (field.DataType()){
+                        case EntityDataType:
+                            HashMap<TableField, Method> tableFieldMethod0 = SGBDEngine.primaryKeyMethods(item0.getClass(), false),
+                                                        tableFieldMethod1 = SGBDEngine.primaryKeyMethods(item1.getClass(), false);
+                            try {
+                                String v1 = tableFieldMethod0.get(tableFieldMethod0.keySet().toArray()[0]).invoke(item0).toString(),
+                                       v2 = tableFieldMethod0.get(tableFieldMethod1.keySet().toArray()[0]).invoke(item1).toString();
+
+                                whereValues.add(v1);
+                                whereValues.add(v2);
+                            }catch(Exception ex){
+
+                            }
+                            break;
+                        case RealDataType:
+                            whereValues.add(new DecimalFormat("0.00").format(item0));
+                            whereValues.add(new DecimalFormat("0.00").format(item1));
+                            break;
+                        case DateDataType:
+                            if (item0 instanceof Date)
+                                whereValues.add(String.valueOf (((Date) item0).getTime()));
+                            else
+                                whereValues.add(item0.toString());
+                            if (item1 instanceof Date)
+                                whereValues.add(String.valueOf (((Date) item1).getTime()));
+                            else
+                                whereValues.add(item1.toString());
+                            break;
+                        default:
+                            whereValues.add(item0.toString());
+                            whereValues.add(item1.toString());
+                            break;
+                    }
+
+                    //endregion
+                }else if (filterValue instanceof ArrayList){
+                    //region In...
+
+                    whereClause += fieldName + " in ( @IN@ )";
+
+                    String inParams = "";
+
+                    for(Object fValue : ((ArrayList) filterValue)){
+                        inParams += (inParams.isEmpty() ? "" : ",") + "?";
+
+                        switch (field.DataType()){
+                            case EntityDataType:
+                                HashMap<TableField, Method> tableFieldMethod0 = SGBDEngine.primaryKeyMethods(fValue.getClass(), false);
+                                try {
+                                    String v1 = tableFieldMethod0.get(tableFieldMethod0.keySet().toArray()[0]).invoke(fValue).toString();
+                                    whereValues.add(v1);
+                                }catch(Exception ex){
+
+                                }
+                                break;
+                            case RealDataType:
+                                whereValues.add(new DecimalFormat("0.00").format(fValue));
+                                break;
+                            case DateDataType:
+                                if (fValue instanceof Date)
+                                    whereValues.add(String.valueOf (((Date) fValue).getTime()));
+                                else
+                                    whereValues.add(fValue.toString());
+                                break;
+                            default:
+                                whereValues.add(fValue.toString());
+                                break;
+                        }
+                    }
+                    whereClause.replace("@IN@", inParams);
+
+                    //endregion
+                }else{
+                    //region Single value
+
+                    whereClause += fieldName + " = ?";
+
+                    switch (field.DataType()){
+                        case EntityDataType:
+                            HashMap<TableField, Method> tableFieldMethod0 = SGBDEngine.primaryKeyMethods(filterValue.getClass(), false);
+                            try {
+                                String v1 = tableFieldMethod0.get(tableFieldMethod0.keySet().toArray()[0]).invoke(filterValue).toString();
+                                whereValues.add(v1);
+                            }catch(Exception ex){
+
+                            }
+                            break;
+                        case RealDataType:
+                            whereValues.add(new DecimalFormat("0.00").format(filterValue));
+                            break;
+                        case DateDataType:
+                            if (filterValue instanceof Date)
+                                whereValues.add(String.valueOf (((Date) filterValue).getTime()));
+                            else
+                                whereValues.add(filterValue.toString());
+                            break;
+                        default:
+                            whereValues.add(filterValue.toString());
+                            break;
+                    }
+
+                    //endregion
+                }
+
+            }
+        }
+
+        for(String keyOrder : orderBy.keySet())
+            orderByClause += (orderByClause.isEmpty() ? "" : ",") + keyOrder + " " + orderBy.get(keyOrder);
+
+        returnValue = SGBDEngine.filterQuery(entityClass, whereClause, (String[]) whereValues.toArray(), orderByClause, recursiveLoad);
+
+        return returnValue;
     }
 
     //endregion
