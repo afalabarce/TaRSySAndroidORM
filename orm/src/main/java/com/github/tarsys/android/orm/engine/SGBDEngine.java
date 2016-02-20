@@ -571,6 +571,7 @@ public class SGBDEngine {
                                 retorno.put(nCampo, valorCampo != null ? ((Double)valorCampo) : Double.parseDouble(tCampo.DefaultValue()));
                                 break;
                             case IntegerDataType:
+                            case LongDataType:
                                 retorno.put(nCampo, valorCampo != null ? ((Long)valorCampo) : Long.parseLong(tCampo.DefaultValue()));
                                 break;
                             case DateDataType:
@@ -660,6 +661,7 @@ public class SGBDEngine {
                                     datosWhere.add(valor.toString().replace(",", "."));
                                     break;
                                 case IntegerDataType:
+                                case LongDataType:
                                     datosWhere.add(valorCampo != null ? valorCampo.toString() : campoTabla.DefaultValue());
                                     break;
                                 case DateDataType:
@@ -750,6 +752,7 @@ public class SGBDEngine {
                                     break;
                                 case EnumDataType:
                                 case IntegerDataType:
+                                case LongDataType:
                                 case DateDataType:
                                 case BooleanDataType:
                                     valorCampo = ((Long)cursorDatos.getLong(cursorDatos.getColumnIndex(nCampo))).toString();
@@ -806,6 +809,7 @@ public class SGBDEngine {
                                 valorCampo = cursorDatos.getDouble(cursorDatos.getColumnIndex(nCampoCursor));
                                 break;
                             case IntegerDataType:
+                            case LongDataType:
                                 valorCampo = cursorDatos.getLong(cursorDatos.getColumnIndex(nCampoCursor));
                                 break;
                             case DateDataType:
@@ -881,6 +885,7 @@ public class SGBDEngine {
                                                     break;
                                                 }
                                                 case IntegerDataType:
+                                                case LongDataType:
                                                 {
                                                     metodoIns.invoke(returnValue, query.getLong(query.getColumnIndex(campoTabla.FieldName())));
                                                     break;
@@ -1020,6 +1025,7 @@ public class SGBDEngine {
                                             mPKs.get(field).invoke(pkEntity, query.getString(query.getColumnIndex(field.FieldName())));
                                             break;
                                         case IntegerDataType:
+                                        case LongDataType:
                                             mPKs.get(field).invoke(pkEntity, query.getLong(query.getColumnIndex(field.FieldName())));
                                             break;
                                         case RealDataType:
@@ -1424,6 +1430,7 @@ public class SGBDEngine {
                                             valores.put(campoTabla.FieldName(), valorCampo != null ? ((Double)valorCampo) : Double.parseDouble(campoTabla.DefaultValue()));
                                             break;
                                         case IntegerDataType:
+                                        case LongDataType:
                                             valores.put(campoTabla.FieldName(), valorCampo != null ? ((Long)valorCampo) : Long.parseLong(campoTabla.DefaultValue()));
                                             break;
                                         case EnumDataType:
