@@ -267,13 +267,13 @@ public class SGBDEngine {
                 else{
                     Class methodReturnType = getterMethod.getReturnType();
 
-                    if (methodReturnType == Boolean.class)
+                    if (methodReturnType == Boolean.class || methodReturnType == boolean.class)
                         returnValue = DBDataType.BooleanDataType;
-                    if (methodReturnType == Integer.class)
+                    if (methodReturnType == Integer.class  || methodReturnType == int.class)
                         returnValue = DBDataType.IntegerDataType;
-                    if (methodReturnType == Long.class)
+                    if (methodReturnType == Long.class  || methodReturnType == long.class)
                         returnValue = DBDataType.LongDataType;
-                    if (methodReturnType == Double.class)
+                    if (methodReturnType == Double.class  || methodReturnType == double.class)
                         returnValue = DBDataType.RealDataType;
                     if (methodReturnType == String.class)
                         returnValue = DBDataType.StringDataType;

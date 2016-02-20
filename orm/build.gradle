@@ -2,8 +2,8 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven'
-def libraryVersionId = 1006
-def libraryVersionCode='1.0.0.6'
+def libraryVersionId = 1007
+def libraryVersionCode='1.0.0.7'
 
 ext {
     bintrayRepo = 'maven'
