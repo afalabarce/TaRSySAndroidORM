@@ -2,8 +2,10 @@ apply plugin: 'com.android.library'
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven'
-def libraryVersionId = 1008
-def libraryVersionCode='1.0.0.8'
+apply plugin: 'me.tatarka.retrolambda'
+
+def libraryVersionId = 1014
+def libraryVersionCode='1.0.1.4'
 
 ext {
     bintrayRepo = 'maven'
@@ -41,11 +43,18 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
+    retrolambdaConfig 'net.orfjackal.retrolambda:retrolambda:1.+'
+    compile 'com.annimon:stream:1.0.1'
     compile 'com.google.code.gson:gson:2.4'
+    compile 'com.google.guava:guava:19.0'
 }
 
 group = 'com.github.tarsys.android'

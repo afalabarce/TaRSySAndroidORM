@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import com.annimon.stream.Stream;
 import com.github.tarsys.android.orm.annotations.DBEntity;
 import com.github.tarsys.android.orm.annotations.Index;
 import com.github.tarsys.android.orm.annotations.Indexes;
@@ -34,8 +35,8 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
-import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -113,8 +114,18 @@ public class SGBDEngine {
     }
 
     public static boolean Initialize(Context context){
-        String containers = SGBDEngine.applicationInfo.metaData.getString("ENTITY_PACKAGES", "").replace(" ","");
-        return SGBDEngine.Initialize(context, containers);
+        boolean returnValue = false;
+        try{
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+            SGBDEngine.applicationInfo = context.getPackageManager().getApplicationInfo(context.getPackageName(), PackageManager.GET_META_DATA);
+
+            String containers = SGBDEngine.applicationInfo.metaData.getString("ENTITY_PACKAGES", "").replace(" ","");
+
+            returnValue = SGBDEngine.Initialize(context, containers);
+        }catch (Exception ex){
+
+        }
+        return returnValue;
     }
 
     public static SQLiteDatabase SQLiteDataBase(boolean readOnly){
@@ -411,43 +422,41 @@ public class SGBDEngine {
         return returnValue;
     }
 
-    protected static ArrayList<DBTable> createDatabaseModel(Context context, String packageName){
+    protected static ArrayList<DBTable> createDatabaseModel(Context context, final String packageName){
         ArrayList<DBTable> returnValue = new ArrayList<DBTable>();
         HashMap<String, DBTable> entities = new HashMap<String, DBTable>();
         try{
-
             String apkName = context.getPackageCodePath();
+
             PathClassLoader classLoader2 = new PathClassLoader(apkName, Thread.currentThread().getContextClassLoader());
             DexClassLoader cLoader = new DexClassLoader(apkName, new ContextWrapper(context).getCacheDir().getAbsolutePath(), null, context.getClassLoader());
             DexFile df = new DexFile(apkName);
-            for (Enumeration<String> iter = df.entries(); iter.hasMoreElements();) {
-                String s = iter.nextElement();
 
-                if (s.startsWith(packageName)){
+            Stream.of(Collections.list(df.entries()))
+                  .filter(c->c.startsWith(packageName))
+                  .forEach(classType -> {
+                      try {
+                          Class<?> classTable = classLoader2.loadClass(classType);
+                          DBEntity databaseHeader = SGBDEngine.dbEntityFromClass(classTable);
 
-                    Class<?> classTable = cLoader.loadClass(s);
-                    DBEntity databaseHeader = SGBDEngine.dbEntityFromClass(classTable);
+                          if (databaseHeader != null) {
+                              ArrayList<DBTable> tablas = SGBDEngine.createDBTableEntity(classTable);
+                              for (DBTable tbl : tablas) {
+                                  if (!entities.containsKey(tbl.Table.TableName()))
+                                      entities.put(tbl.Table.TableName(), tbl);
+                              }
+                          }
+                      } catch (ClassNotFoundException e) {
+                          e.printStackTrace();
+                      }
+                  });
 
-                    if (databaseHeader != null){
-                        ArrayList<DBTable> tablas = SGBDEngine.createDBTableEntity(classTable);
-                        for(DBTable tbl : tablas){
-                            if (!entities.containsKey(tbl.Table.TableName())) entities.put(tbl.Table.TableName(), tbl);
-                        }
-                    }
-                }
-            }
             for(String key : entities.keySet()){
                 returnValue.add(entities.get(key));
             }
-        }catch(IOException ex){
-            if (ex != null){
 
-            }
-        } catch (ClassNotFoundException ex)
-        {
-            if (ex != null){
-
-            }
+        }catch(Exception ex){
+            Log.e("createDatabaseModel", ex.getMessage());
         }
 
         return returnValue;
@@ -1320,7 +1329,7 @@ public class SGBDEngine {
         for(String keyOrder : orderBy.keySet())
             orderByClause += (orderByClause.isEmpty() ? "" : ",") + keyOrder + " " + orderBy.get(keyOrder);
 
-        returnValue = SGBDEngine.filterQuery(entityClass, whereClause, (String[]) whereValues.toArray(), orderByClause, recursiveLoad);
+        returnValue = SGBDEngine.filterQuery(entityClass, whereClause, whereValues.toArray(new String[whereValues.size()]), orderByClause, recursiveLoad);
 
         return returnValue;
     }
@@ -1345,7 +1354,7 @@ public class SGBDEngine {
         boolean retorno = false;
 
         if (bd.isReadOnly()) {
-            Log.e("EliminarEntidadPK", "Base de datos abierta en modo solo lectura, no se puede ejecutar la operación de elimnación");
+            Log.e("deleteEntity", "Database is open read only, you can't delete");
         }else{
             DBEntity DBEntity;
             if ((DBEntity = SGBDEngine.dbEntityFromClass(primaryKeyEntity.getClass())) != null){
