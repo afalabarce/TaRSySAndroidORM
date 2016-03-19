@@ -25,6 +25,8 @@ import com.github.tarsys.android.orm.dataobjects.DataSource;
 import com.github.tarsys.android.orm.enums.DBDataType;
 import com.github.tarsys.android.orm.sqlite.SQLiteSupport;
 
+import org.springframework.core.annotation.AnnotationUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -164,143 +166,136 @@ public class SGBDEngine {
     }
 
     protected static TableField tableFieldFromMethod(final Method getterMethod){
+        final TableField tableField = AnnotationUtils.findAnnotation(getterMethod, TableField.class);
+        TableField returnValue = null;
 
-        final String fieldName = SGBDEngine.fieldName(getterMethod);
-        final DBDataType dbDataType = SGBDEngine.fieldDataType(getterMethod);
-        final int dbDataTypeLength = SGBDEngine.fieldDataTypeLength(getterMethod);
-        final Class<?> entityClass = SGBDEngine.fieldEntityClass(getterMethod);
-        final TableField tableField = getterMethod.getAnnotation(TableField.class);
+        if (tableField != null) {
 
-        TableField returnValue = tableField == null ? null : new TableField(){
+            returnValue = new TableField() {
 
-            @Override
-            public Class<? extends Annotation> annotationType() {
-                return tableField.annotationType();
-            }
+                @Override
+                public Class<? extends Annotation> annotationType() {
+                    return tableField.annotationType();
+                }
 
-            @Override
-            public String FieldName() {
-                return fieldName;
-            }
+                @Override
+                public String FieldName() {
+                    return SGBDEngine.fieldName(getterMethod, tableField);
+                }
 
-            @Override
-            public String Description() {
-                return tableField.Description();
-            }
+                @Override
+                public String Description() {
+                    return tableField.Description();
+                }
 
-            @Override
-            public DBDataType DataType() {
-                return dbDataType;
-            }
+                @Override
+                public DBDataType DataType() {
+                    return SGBDEngine.fieldDataType(getterMethod, tableField);
+                }
 
-            @Override
-            public int DataTypeLength() {
-                return dbDataTypeLength;
-            }
+                @Override
+                public int DataTypeLength() {
+                    return  SGBDEngine.fieldDataTypeLength(getterMethod, tableField);
+                }
 
-            @Override
-            public Class<?> EntityClass() {
-                return entityClass;
-            }
+                @Override
+                public Class<?> EntityClass() {
+                    return SGBDEngine.fieldEntityClass(getterMethod, tableField);
+                }
 
 
-            @Override
-            public String DefaultValue() {
-                return tableField.DefaultValue();
-            }
+                @Override
+                public String DefaultValue() {
+                    return tableField.DefaultValue();
+                }
 
-            @Override
-            public boolean PrimaryKey() {
-                return tableField.PrimaryKey();
-            }
+                @Override
+                public boolean PrimaryKey() {
+                    return tableField.PrimaryKey();
+                }
 
-            @Override
-            public String ForeignKeyName() {
-                return tableField.ForeignKeyName();
-            }
+                @Override
+                public String ForeignKeyName() {
+                    return tableField.ForeignKeyName();
+                }
 
-            @Override
-            public String ForeignKeyTableName() {
-                return tableField.ForeignKeyTableName();
-            }
+                @Override
+                public String ForeignKeyTableName() {
+                    return tableField.ForeignKeyTableName();
+                }
 
-            @Override
-            public String ForeignKeyFieldName() {
-                return tableField.ForeignKeyFieldName();
-            }
+                @Override
+                public String ForeignKeyFieldName() {
+                    return tableField.ForeignKeyFieldName();
+                }
 
-            @Override
-            public boolean NotNull() {
-                return tableField.NotNull();
-            }
+                @Override
+                public boolean NotNull() {
+                    return tableField.NotNull();
+                }
 
-            @Override
-            public boolean CascadeDelete() {
-                return tableField.CascadeDelete();
-            }
+                @Override
+                public boolean CascadeDelete() {
+                    return tableField.CascadeDelete();
+                }
 
-            @Override
-            public boolean AutoIncrement() {
-                return tableField.AutoIncrement();
-            }
-        };
-
+                @Override
+                public boolean AutoIncrement() {
+                    return tableField.AutoIncrement();
+                }
+            };
+        }
         return returnValue;
     }
 
-    protected static String fieldName(Method getterMethod){
+    protected static String fieldName(Method getterMethod, TableField field){
         String returnValue = "";
 
         if (getterMethod != null){
-            TableField tableField =  getterMethod.getAnnotation(TableField.class);
-            if (tableField != null){
-                returnValue = !tableField.FieldName().isEmpty() ? tableField.FieldName() : "";
-                if (returnValue.isEmpty()){
-                    if (getterMethod.getName().startsWith("get"))
-                        returnValue = getterMethod.getName().substring(3).toLowerCase();
-                    else if (getterMethod.getName().startsWith("is"))
-                        returnValue = getterMethod.getName().substring(2).toLowerCase();
-                }
+            if (field != null && field.FieldName() != null && !field.FieldName().isEmpty()){
+                returnValue = field.FieldName();
+            }else{
+                if (getterMethod.getName().startsWith("get"))
+                    returnValue = getterMethod.getName().substring(3).toLowerCase();
+                else if (getterMethod.getName().startsWith("is"))
+                    returnValue = getterMethod.getName().substring(2).toLowerCase();
             }
         }
 
         return returnValue;
     }
 
-    protected static DBDataType fieldDataType(Method getterMethod){
+    protected static DBDataType fieldDataType(Method getterMethod, TableField field){
         DBDataType returnValue = DBDataType.None;
 
         if (getterMethod != null) {
-            TableField tableField = getterMethod.getAnnotation(TableField.class);
-            if (tableField != null) {
-                if (tableField.DataType() != DBDataType.None)
-                    returnValue = tableField.DataType();
-                else{
-                    Class methodReturnType = getterMethod.getReturnType();
+            if (field != null && field.DataType() != null && field.DataType() != DBDataType.None){
+                returnValue = field.DataType();
+            }else{
+                Class methodReturnType = getterMethod.getReturnType();
 
-                    if (methodReturnType == Boolean.class || methodReturnType == boolean.class)
-                        returnValue = DBDataType.BooleanDataType;
-                    if (methodReturnType == Integer.class  || methodReturnType == int.class)
-                        returnValue = DBDataType.IntegerDataType;
-                    if (methodReturnType == Long.class  || methodReturnType == long.class)
-                        returnValue = DBDataType.LongDataType;
-                    if (methodReturnType == Double.class  || methodReturnType == double.class)
-                        returnValue = DBDataType.RealDataType;
-                    if (methodReturnType == String.class)
-                        returnValue = DBDataType.StringDataType;
-                    if (methodReturnType == Date.class)
-                        returnValue = DBDataType.DateDataType;
-                    if (methodReturnType.isEnum())
-                        returnValue = DBDataType.EnumDataType;
-                    if (methodReturnType.getAnnotation(DBEntity.class) != null)
-                        returnValue = DBDataType.EntityDataType;
-                    if (methodReturnType.isAssignableFrom(ArrayList.class)){
-                        if (getterMethod.getGenericReturnType() != null && getterMethod.getGenericReturnType() instanceof ParameterizedType) {
-                            ParameterizedType parameterizedType = (ParameterizedType) getterMethod.getGenericReturnType();
-                            if (parameterizedType != null && parameterizedType.getActualTypeArguments().length > 0 &&
-                                    ((Class)parameterizedType.getActualTypeArguments()[0]).getAnnotation(DBEntity.class) != null)
-                                returnValue = DBDataType.EntityListDataType;
-                        }
+                if (methodReturnType == Boolean.class || methodReturnType == boolean.class)
+                    returnValue = DBDataType.BooleanDataType;
+                if (methodReturnType == Integer.class  || methodReturnType == int.class)
+                    returnValue = DBDataType.IntegerDataType;
+                if (methodReturnType == Long.class  || methodReturnType == long.class)
+                    returnValue = DBDataType.LongDataType;
+                if (methodReturnType == Double.class  || methodReturnType == double.class)
+                    returnValue = DBDataType.RealDataType;
+                if (methodReturnType == String.class)
+                    returnValue = DBDataType.StringDataType;
+                if (methodReturnType == Date.class)
+                    returnValue = DBDataType.DateDataType;
+                if (methodReturnType.isEnum())
+                    returnValue = DBDataType.EnumDataType;
+                if (methodReturnType.getAnnotation(DBEntity.class) != null)
+                    returnValue = DBDataType.EntityDataType;
+                if (methodReturnType.isAssignableFrom(ArrayList.class)) {
+                    if (getterMethod.getGenericReturnType() != null && getterMethod.getGenericReturnType() instanceof ParameterizedType) {
+                        ParameterizedType parameterizedType = (ParameterizedType) getterMethod.getGenericReturnType();
+                        if (parameterizedType != null && parameterizedType.getActualTypeArguments().length > 0 &&
+                                ((Class) parameterizedType.getActualTypeArguments()[0]).getAnnotation(DBEntity.class) != null)
+                            returnValue = DBDataType.EntityListDataType;
                     }
                 }
             }
@@ -309,30 +304,25 @@ public class SGBDEngine {
         return returnValue;
     }
 
-    protected static int fieldDataTypeLength(Method getterMethod){
+    protected static int fieldDataTypeLength(Method getterMethod, TableField field){
         int returnValue = 0;
 
         if (getterMethod != null) {
-            TableField tableField = getterMethod.getAnnotation(TableField.class);
-            if (tableField != null) {
-                if (tableField.DataType() == DBDataType.StringDataType){
-                    returnValue = tableField.DataTypeLength();
+            DBDataType dataType = SGBDEngine.fieldDataType(getterMethod, field);
 
-                    if (returnValue == 0){
-                        // get the default value from metadata
-                        returnValue = SGBDEngine.applicationInfo.metaData.getInt("DB_STRING_DEFAULT_LENGTH",250);
-                    }
-                }
+            if (dataType == DBDataType.StringDataType){
+                // get the default value from metadata
+                returnValue = SGBDEngine.applicationInfo.metaData.getInt("DB_STRING_DEFAULT_LENGTH",250);
             }
         }
 
         return returnValue;
     }
 
-    protected static Class<?> fieldEntityClass(Method getterMethod){
+    protected static Class<?> fieldEntityClass(Method getterMethod, TableField field){
         Class<?> returnValue = null;
 
-        DBDataType dbDataType = SGBDEngine.fieldDataType(getterMethod);
+        DBDataType dbDataType = SGBDEngine.fieldDataType(getterMethod, field);
         if (dbDataType == DBDataType.EntityDataType){
             if (getterMethod.getReturnType().getAnnotation(DBEntity.class) != null)
                 returnValue = getterMethod.getReturnType();
@@ -1206,10 +1196,10 @@ public class SGBDEngine {
         for(String whereKey : filters.keySet()){
             whereClause += (whereClause.isEmpty() ?  "" : " and ");
 
-            TableField field = entityClass.getMethod(whereKey).getAnnotation(TableField.class);
+            TableField field = SGBDEngine.tableFieldFromMethod(entityClass.getMethod(whereKey));
             if (field != null) {
 
-                String fieldName = SGBDEngine.fieldName(entityClass.getMethod(whereKey));
+                String fieldName = field.FieldName();
                 Object filterValue = filters.get(whereKey);
 
                 if (filterValue.getClass().isArray() && ((Object[]) filterValue).length == 2) {
