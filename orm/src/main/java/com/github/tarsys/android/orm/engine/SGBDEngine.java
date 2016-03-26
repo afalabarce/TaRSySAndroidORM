@@ -13,6 +13,7 @@ import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
+import com.annimon.stream.Collectors;
 import com.annimon.stream.Stream;
 import com.github.tarsys.android.orm.annotations.DBEntity;
 import com.github.tarsys.android.orm.annotations.Index;
@@ -40,6 +41,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -248,6 +250,25 @@ public class SGBDEngine {
         return returnValue;
     }
 
+    protected static ArrayList<Method>getTableFieldMethods(Class<?> classValue) {
+        ArrayList<Method> returnValue = new ArrayList<>();
+        ArrayList<Method> tmpReturnValue = new ArrayList<>();
+
+        List<Method> methods = Stream.of(classValue.getDeclaredMethods())
+                                     .filter(m -> m.getAnnotation(TableField.class) != null)
+                                     .collect(Collectors.toList());
+
+        if (methods != null) tmpReturnValue.addAll(methods);
+
+        if (classValue.getSuperclass() != null){
+            tmpReturnValue.addAll(SGBDEngine.getTableFieldMethods(classValue.getSuperclass()));
+        }
+
+        returnValue.addAll(Stream.of(tmpReturnValue).distinct().collect(Collectors.toList()));
+
+        return returnValue;
+    }
+
     protected static String fieldName(Method getterMethod, TableField field){
         String returnValue = "";
 
@@ -375,17 +396,19 @@ public class SGBDEngine {
         return retorno;
     }
     
-    protected static ArrayList<DBTable> createDBTableEntity(Class<?> tipo){
+    protected static ArrayList<DBTable> createDBTableEntity(Class<?> classValue){
         ArrayList<DBTable> returnValue = new ArrayList<>();
-        DBEntity tablaBD = SGBDEngine.dbEntityFromClass(tipo);
+        DBEntity tablaBD = SGBDEngine.dbEntityFromClass(classValue);
 
         if (tablaBD != null){
             // si tenemos clase y tiene el decorado DBEntity
             DBTable dbTable = new DBTable();
+            ArrayList<Method> methods = SGBDEngine.getTableFieldMethods(classValue);
+
             dbTable.Table = tablaBD;
             dbTable.Indexes = new ArrayList<Index>();
             dbTable.Fields = new ArrayList<TableField>();
-            Method[]methods = tipo.getMethods();
+
             for(Method method : methods){
                 TableField tableField = SGBDEngine.tableFieldFromMethod(method);
 
@@ -402,7 +425,7 @@ public class SGBDEngine {
                     dbTable.Fields.add(tableField);
                 }
             }
-            Indexes indexes = tipo.getAnnotation(Indexes.class);
+            Indexes indexes = classValue.getAnnotation(Indexes.class);
             if (indexes != null && indexes.value() != null){
                 dbTable.Indexes.addAll(Arrays.asList(indexes.value()));
             }
@@ -467,14 +490,14 @@ public class SGBDEngine {
 
     //endregion
 
-    //region Methods for getting information of entity clases
+    //region Methods for getting information of entity classes
 
     protected static <T>ArrayList<Object> entityReport(T entity, boolean includeWithoutCascadeDelete){
         ArrayList<Object> returnValue = new ArrayList<Object>();
 
         if (SGBDEngine.entityWithEntities(entity.getClass())){
             // Si la entidad tiene entidades, recargaremos la entidad, para garantizarnos que tenemos el objeto completo...
-            for(Method m : entity.getClass().getMethods()){
+            for(Method m : SGBDEngine.getTableFieldMethods(entity.getClass())){
                 try{
                     TableField campoTabla = SGBDEngine.tableFieldFromMethod(m);
                     if (campoTabla == null) continue;
@@ -505,7 +528,7 @@ public class SGBDEngine {
         boolean retorno = false;
 
         if (SGBDEngine.dbEntityFromClass(classValue) != null){
-            for(Method m : classValue.getMethods()){
+            for(Method m : SGBDEngine.getTableFieldMethods(classValue)){
                 TableField campo = SGBDEngine.tableFieldFromMethod(m);
                 if (retorno = (campo != null && (campo.DataType() == DBDataType.EntityDataType || campo.DataType() == DBDataType.EntityListDataType))) break;
             }
@@ -513,11 +536,11 @@ public class SGBDEngine {
         return retorno;
     }
 
-    protected static ArrayList<String> getPrimaryKeyFieldNames(Class<?> clase){
+    protected static ArrayList<String> getPrimaryKeyFieldNames(Class<?> classValue){
         ArrayList<String> retorno = new ArrayList<String>();
 
-        if (SGBDEngine.dbEntityFromClass(clase) != null){
-            for (Method m: clase.getMethods()){
+        if (SGBDEngine.dbEntityFromClass(classValue) != null){
+            for (Method m: SGBDEngine.getTableFieldMethods(classValue)){
                 TableField cmp;
                 if ((cmp = SGBDEngine.tableFieldFromMethod(m)) != null && cmp.PrimaryKey()){
                     if (cmp.DataType() == DBDataType.EntityDataType || cmp.DataType() == DBDataType.EntityListDataType) continue;
@@ -530,16 +553,16 @@ public class SGBDEngine {
         return retorno;
     }
 
-    protected static HashMap<TableField,Method> primaryKeyMethods(Class<?> clase, boolean metodosInsercion){
+    protected static HashMap<TableField,Method> primaryKeyMethods(Class<?> classValue, boolean metodosInsercion){
         HashMap<TableField,Method> retorno = new HashMap<TableField,Method>();
-        if (SGBDEngine.dbEntityFromClass(clase) != null){
-            for(Method m : clase.getMethods()){
+        if (SGBDEngine.dbEntityFromClass(classValue) != null){
+            for(Method m : SGBDEngine.getTableFieldMethods(classValue)){
                 TableField campo =  SGBDEngine.tableFieldFromMethod(m);
                 if (campo != null && campo.PrimaryKey()){
                     if (!metodosInsercion){
                         retorno.put(campo,m);
                     }else{
-                        try{ retorno.put(campo,clase.getMethod(SGBDEngine.nameSetMethod(m), m.getReturnType())); }catch(NoSuchMethodException ex){} catch (SecurityException ex)
+                        try{ retorno.put(campo,classValue.getMethod(SGBDEngine.nameSetMethod(m), m.getReturnType())); }catch(NoSuchMethodException ex){} catch (SecurityException ex)
                         {
                         }
                     }
@@ -555,7 +578,7 @@ public class SGBDEngine {
         DBEntity tEntidad = null;
         if ((tEntidad =  SGBDEngine.dbEntityFromClass(foreignKeyEntity.getClass())) != null){
             retorno = new ContentValues();
-            for(Method m : foreignKeyEntity.getClass().getMethods()){
+            for(Method m : SGBDEngine.getTableFieldMethods(foreignKeyEntity.getClass())){
                 try{
                     TableField tCampo = SGBDEngine.tableFieldFromMethod(m);
                     if (tCampo != null && tCampo.PrimaryKey() && tCampo.DataType() != DBDataType.EntityDataType && tCampo.DataType() != DBDataType.EntityListDataType){
@@ -598,7 +621,7 @@ public class SGBDEngine {
 
         DBEntity eBd;
         if ((eBd = SGBDEngine.dbEntityFromClass(classValue)) != null){
-            for(Method m : classValue.getMethods()){
+            for(Method m : SGBDEngine.getTableFieldMethods(classValue)){
                 TableField campo = SGBDEngine.tableFieldFromMethod(m);
                 DBEntity eBdFk = null;
 
@@ -636,12 +659,12 @@ public class SGBDEngine {
 
         DBEntity datoTabla;
         try{
-
-            if ((datoTabla = SGBDEngine.dbEntityFromClass(entity.getClass())) != null){
+            Class<?> classValue = entity.getClass();
+            if ((datoTabla = SGBDEngine.dbEntityFromClass(classValue)) != null){
                 String clausulaWhere = "";
                 ArrayList<String> datosWhere = new ArrayList<String>();
 
-                for (Method metodo : entity.getClass().getMethods()){
+                for (Method metodo :  SGBDEngine.getTableFieldMethods(classValue)){
                     TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                     if (campoTabla != null){
                         if (campoTabla.PrimaryKey()){
@@ -721,17 +744,17 @@ public class SGBDEngine {
         return retorno;
     }
 
-    protected static <T>PrimaryFilter createForeignKeyFilter(Class<T> clase, Cursor cursorDatos){
+    protected static <T>PrimaryFilter createForeignKeyFilter(Class<T> classValue, Cursor cursorDatos){
         PrimaryFilter retorno = null;
         DBEntity datoTabla;
 
         try{
 
-            if ((datoTabla = SGBDEngine.dbEntityFromClass(clase)) != null){
+            if ((datoTabla = SGBDEngine.dbEntityFromClass(classValue)) != null){
                 String clausulaWhere = "";
                 ArrayList<String> datosWhere = new ArrayList<String>();
 
-                for (Method metodo : clase.getMethods()){
+                for (Method metodo : SGBDEngine.getTableFieldMethods(classValue)){
                     TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                     if (campoTabla != null){
                         if (campoTabla.PrimaryKey()){
@@ -777,13 +800,13 @@ public class SGBDEngine {
         return retorno;
     }
 
-    protected static <T> T createForeignKeyEntity(Class<T> clase, Cursor cursorDatos){
+    protected static <T> T createForeignKeyEntity(Class<T> classValue, Cursor cursorDatos){
         T retorno = null;
         DBEntity datoTabla;
 
-        if ((datoTabla = SGBDEngine.dbEntityFromClass(clase)) != null){
+        if ((datoTabla = SGBDEngine.dbEntityFromClass(classValue)) != null){
             ArrayList<Method> metodosPK = new ArrayList<Method>();
-            for (Method metodo : clase.getMethods()){
+            for (Method metodo : SGBDEngine.getTableFieldMethods(classValue)){
                 TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                 if (campoTabla != null){
                     if (campoTabla.PrimaryKey()){
@@ -794,7 +817,7 @@ public class SGBDEngine {
             // Si tenemos métodos de clave primaria, entonces, creamos la instancia del objeto e inicializamos su clave...
             if (metodosPK.size() > 0){
                 try {
-                    retorno = clase.newInstance();
+                    retorno = classValue.newInstance();
                     for(Method metodo : metodosPK){
                         TableField campoTabla = SGBDEngine.tableFieldFromMethod(metodo);
                         String nCampoCursor = datoTabla.TableName().toLowerCase() + "_" + (campoTabla.DataType() == DBDataType.DateDataType ? SQLiteSupport.PREFIX_DATE_FIELD : "") + campoTabla.FieldName();
@@ -818,7 +841,7 @@ public class SGBDEngine {
                                 valorCampo = cal.getTime();
                                 break;
                         }
-                        Method mIns = clase.getMethod(SGBDEngine.nameSetMethod(metodo), metodo.getReturnType());
+                        Method mIns = classValue.getMethod(SGBDEngine.nameSetMethod(metodo), metodo.getReturnType());
                         if (mIns != null){
                             mIns.invoke(retorno, valorCampo);
                         }
@@ -865,8 +888,9 @@ public class SGBDEngine {
                     if (query != null){
                         if (query.moveToFirst()){
                             try{
-                                returnValue = (T) primaryKeyEntity.getClass().newInstance();
-                                for (Method method : primaryKeyEntity.getClass().getMethods()){
+                                Class<?> classValue = primaryKeyEntity.getClass();
+                                returnValue = (T) classValue.newInstance();
+                                for (Method method : SGBDEngine.getTableFieldMethods(classValue)){
                                     TableField campoTabla = SGBDEngine.tableFieldFromMethod(method);
                                     if (campoTabla != null){
                                         Method metodoIns = primaryKeyEntity.getClass().getMethod(SGBDEngine.nameSetMethod(method), method.getReturnType());
@@ -1414,8 +1438,8 @@ public class SGBDEngine {
                         boolean error = false;
                         Method autoincrementado = null;
                         ArrayList<TableField> clsListaEntidad = new ArrayList<TableField>();
-
-                        for(Method m : primaryKeyEntity.getClass().getMethods()){
+                        Class<?> classValue = primaryKeyEntity.getClass();
+                        for(Method m : SGBDEngine.getTableFieldMethods(classValue)){
                             TableField campoTabla = SGBDEngine.tableFieldFromMethod(m);
                             if (campoTabla != null && !campoTabla.AutoIncrement()){
                                 try{
