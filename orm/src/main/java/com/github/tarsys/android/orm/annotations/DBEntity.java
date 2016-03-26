@@ -13,4 +13,6 @@ public @interface DBEntity
 {
     String TableName() default "";
     String Description() default "";
+    int ResourceDescription() default 0;
+    int ResourceDrawable() default 0;
 }

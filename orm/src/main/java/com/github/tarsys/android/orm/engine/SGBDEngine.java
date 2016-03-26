@@ -2,7 +2,6 @@ package com.github.tarsys.android.orm.engine;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
@@ -46,7 +45,6 @@ import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 import dalvik.system.PathClassLoader;
 
@@ -56,11 +54,56 @@ import dalvik.system.PathClassLoader;
 public class SGBDEngine {
     public static String SQLiteDatabasePath;
     protected static ApplicationInfo applicationInfo;
+    private static ArrayList<Class<?>> dbEntities;
+    private static String containers;
+
+    /**
+     * Get all DBEntity classes contained into containers packages
+     * @param context
+     * @param containers
+     * @return
+     */
+    public static ArrayList<Class<?>> getEntityClasses(Context context, String containers){
+        ArrayList<Class<?>> returnValue = new ArrayList<>();
+
+        if (SGBDEngine.dbEntities == null || SGBDEngine.dbEntities.isEmpty()) {
+            try {
+                ArrayList<String> packages = new ArrayList<>();
+                HashMap<String, Class<?>> entities = new HashMap<>();
+                String apkName = context.getPackageCodePath();
+                PathClassLoader classLoader2 = new PathClassLoader(apkName, Thread.currentThread().getContextClassLoader());
+                DexFile df = new DexFile(apkName);
+
+                packages.addAll(Arrays.asList(containers.split(",")));
+
+                Stream.of(Collections.list(df.entries()))
+                        .filter(c->Stream.of(packages).filter(p->c.startsWith(p)).count() > 0)
+                        .forEach(classType -> {
+                            try {
+                                Class<?> classTable = classLoader2.loadClass(classType);
+
+                                if (SGBDEngine.dbEntityFromClass(classTable) != null) {
+                                    if (!entities.containsKey(classTable.getCanonicalName()))
+                                        entities.put(classTable.getCanonicalName(), classTable);
+                                }
+                            } catch (ClassNotFoundException e) {
+                                e.printStackTrace();
+                            }
+                        });
+                returnValue.addAll(Stream.of(entities.values()).distinct().collect(Collectors.toList()));
+            } catch (Exception ex) {
+
+            }
+        }
+        return returnValue;
+    }
 
     public static boolean Initialize(Context context, String containers){
         boolean returnValue = false;
 
         boolean isExternalStorage = false;
+        SGBDEngine.dbEntities = new ArrayList<>();
+        SGBDEngine.containers = containers;
         String databaseName = "";
         String databaseDirectory = "";
         ArrayList<String> entityContainerPackages = new ArrayList<>();
@@ -90,7 +133,7 @@ public class SGBDEngine {
             if (!new File(SQLiteDatabasePath).exists())
                 savedAppVersion = 0;
 
-            if (!containers.isEmpty()) entityContainerPackages.addAll(Arrays.asList(containers.split(",")));
+            if (!SGBDEngine.containers.isEmpty()) entityContainerPackages.addAll(Arrays.asList(SGBDEngine.containers.split(",")));
 
             if (!entityContainerPackages.isEmpty()) {
 
@@ -356,7 +399,7 @@ public class SGBDEngine {
         return returnValue;
     }
 
-    protected static DBEntity dbEntityFromClass(final Class<?> classEntity){
+    public static DBEntity dbEntityFromClass(final Class<?> classEntity){
         DBEntity returnValue = null;
         DBEntity dbEntityTmp;
         if ((dbEntityTmp = classEntity.getAnnotation(DBEntity.class)) != null){
@@ -376,6 +419,16 @@ public class SGBDEngine {
                     @Override
                     public String Description() {
                         return classEntity.getAnnotation(DBEntity.class).Description();
+                    }
+
+                    @Override
+                    public int ResourceDescription() {
+                        return classEntity.getAnnotation(DBEntity.class).ResourceDescription();
+                    }
+
+                    @Override
+                    public int ResourceDrawable() {
+                        return classEntity.getAnnotation(DBEntity.class).ResourceDrawable();
                     }
                 };
             }else{
@@ -442,7 +495,6 @@ public class SGBDEngine {
             String apkName = context.getPackageCodePath();
 
             PathClassLoader classLoader2 = new PathClassLoader(apkName, Thread.currentThread().getContextClassLoader());
-            DexClassLoader cLoader = new DexClassLoader(apkName, new ContextWrapper(context).getCacheDir().getAbsolutePath(), null, context.getClassLoader());
             DexFile df = new DexFile(apkName);
 
             Stream.of(Collections.list(df.entries()))
@@ -453,6 +505,7 @@ public class SGBDEngine {
                           DBEntity databaseHeader = SGBDEngine.dbEntityFromClass(classTable);
 
                           if (databaseHeader != null) {
+                              SGBDEngine.dbEntities.add(classTable);
                               ArrayList<DBTable> tablas = SGBDEngine.createDBTableEntity(classTable);
                               for (DBTable tbl : tablas) {
                                   if (!entities.containsKey(tbl.Table.TableName()))
