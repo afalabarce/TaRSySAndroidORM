@@ -234,6 +234,11 @@ public class SGBDEngine {
                 }
 
                 @Override
+                public int ResourceDescription() {
+                    return tableField.ResourceDescription();
+                }
+
+                @Override
                 public DBDataType DataType() {
                     return SGBDEngine.fieldDataType(getterMethod, tableField);
                 }
@@ -293,7 +298,7 @@ public class SGBDEngine {
         return returnValue;
     }
 
-    protected static ArrayList<Method>getTableFieldMethods(Class<?> classValue) {
+    public static ArrayList<Method>getTableFieldMethods(Class<?> classValue) {
         ArrayList<Method> returnValue = new ArrayList<>();
         ArrayList<Method> tmpReturnValue = new ArrayList<>();
 

@@ -12,6 +12,7 @@ import java.lang.annotation.RetentionPolicy;
 public @interface TableField {
     String FieldName() default "";
     String Description() default "";
+    int ResourceDescription() default 0;
     DBDataType DataType() default DBDataType.None;
     int DataTypeLength() default 0;
     Class<?> EntityClass() default String.class;
