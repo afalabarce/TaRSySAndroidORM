@@ -301,18 +301,19 @@ public class SGBDEngine {
     public static ArrayList<Method>getTableFieldMethods(Class<?> classValue) {
         ArrayList<Method> returnValue = new ArrayList<>();
         ArrayList<Method> tmpReturnValue = new ArrayList<>();
+        if (classValue != null) {
+            List<Method> methods = Stream.of(classValue.getDeclaredMethods())
+                    .filter(m -> m.getAnnotation(TableField.class) != null)
+                    .collect(Collectors.toList());
 
-        List<Method> methods = Stream.of(classValue.getDeclaredMethods())
-                                     .filter(m -> m.getAnnotation(TableField.class) != null)
-                                     .collect(Collectors.toList());
+            if (methods != null) tmpReturnValue.addAll(methods);
 
-        if (methods != null) tmpReturnValue.addAll(methods);
+            if (classValue.getSuperclass() != null) {
+                tmpReturnValue.addAll(SGBDEngine.getTableFieldMethods(classValue.getSuperclass()));
+            }
 
-        if (classValue.getSuperclass() != null){
-            tmpReturnValue.addAll(SGBDEngine.getTableFieldMethods(classValue.getSuperclass()));
+            returnValue.addAll(Stream.of(tmpReturnValue).distinct().collect(Collectors.toList()));
         }
-
-        returnValue.addAll(Stream.of(tmpReturnValue).distinct().collect(Collectors.toList()));
 
         return returnValue;
     }
