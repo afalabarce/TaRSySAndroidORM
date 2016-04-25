@@ -210,7 +210,7 @@ public class SGBDEngine {
         return returnValue;
     }
 
-    protected static TableField tableFieldFromMethod(final Method getterMethod){
+    public static TableField tableFieldFromMethod(final Method getterMethod){
         final TableField tableField = AnnotationUtils.findAnnotation(getterMethod, TableField.class);
         TableField returnValue = null;
 
