@@ -211,89 +211,90 @@ public class SGBDEngine {
     }
 
     public static TableField tableFieldFromMethod(final Method getterMethod){
-        final TableField tableField = AnnotationUtils.findAnnotation(getterMethod, TableField.class);
         TableField returnValue = null;
+        if (getterMethod != null) {
+            final TableField tableField = AnnotationUtils.findAnnotation(getterMethod, TableField.class);
+            if (tableField != null) {
 
-        if (tableField != null) {
+                returnValue = new TableField() {
 
-            returnValue = new TableField() {
+                    @Override
+                    public Class<? extends Annotation> annotationType() {
+                        return tableField.annotationType();
+                    }
 
-                @Override
-                public Class<? extends Annotation> annotationType() {
-                    return tableField.annotationType();
-                }
+                    @Override
+                    public String FieldName() {
+                        return SGBDEngine.fieldName(getterMethod, tableField);
+                    }
 
-                @Override
-                public String FieldName() {
-                    return SGBDEngine.fieldName(getterMethod, tableField);
-                }
+                    @Override
+                    public String Description() {
+                        return tableField.Description();
+                    }
 
-                @Override
-                public String Description() {
-                    return tableField.Description();
-                }
+                    @Override
+                    public int ResourceDescription() {
+                        return tableField.ResourceDescription();
+                    }
 
-                @Override
-                public int ResourceDescription() {
-                    return tableField.ResourceDescription();
-                }
+                    @Override
+                    public DBDataType DataType() {
+                        return SGBDEngine.fieldDataType(getterMethod, tableField);
+                    }
 
-                @Override
-                public DBDataType DataType() {
-                    return SGBDEngine.fieldDataType(getterMethod, tableField);
-                }
+                    @Override
+                    public int DataTypeLength() {
+                        return SGBDEngine.fieldDataTypeLength(getterMethod, tableField);
+                    }
 
-                @Override
-                public int DataTypeLength() {
-                    return  SGBDEngine.fieldDataTypeLength(getterMethod, tableField);
-                }
-
-                @Override
-                public Class<?> EntityClass() {
-                    return SGBDEngine.fieldEntityClass(getterMethod, tableField);
-                }
+                    @Override
+                    public Class<?> EntityClass() {
+                        return SGBDEngine.fieldEntityClass(getterMethod, tableField);
+                    }
 
 
-                @Override
-                public String DefaultValue() {
-                    return tableField.DefaultValue();
-                }
+                    @Override
+                    public String DefaultValue() {
+                        return tableField.DefaultValue();
+                    }
 
-                @Override
-                public boolean PrimaryKey() {
-                    return tableField.PrimaryKey();
-                }
+                    @Override
+                    public boolean PrimaryKey() {
+                        return tableField.PrimaryKey();
+                    }
 
-                @Override
-                public String ForeignKeyName() {
-                    return tableField.ForeignKeyName();
-                }
+                    @Override
+                    public String ForeignKeyName() {
+                        return tableField.ForeignKeyName();
+                    }
 
-                @Override
-                public String ForeignKeyTableName() {
-                    return tableField.ForeignKeyTableName();
-                }
+                    @Override
+                    public String ForeignKeyTableName() {
+                        return tableField.ForeignKeyTableName();
+                    }
 
-                @Override
-                public String ForeignKeyFieldName() {
-                    return tableField.ForeignKeyFieldName();
-                }
+                    @Override
+                    public String ForeignKeyFieldName() {
+                        return tableField.ForeignKeyFieldName();
+                    }
 
-                @Override
-                public boolean NotNull() {
-                    return tableField.NotNull();
-                }
+                    @Override
+                    public boolean NotNull() {
+                        return tableField.NotNull();
+                    }
 
-                @Override
-                public boolean CascadeDelete() {
-                    return tableField.CascadeDelete();
-                }
+                    @Override
+                    public boolean CascadeDelete() {
+                        return tableField.CascadeDelete();
+                    }
 
-                @Override
-                public boolean AutoIncrement() {
-                    return tableField.AutoIncrement();
-                }
-            };
+                    @Override
+                    public boolean AutoIncrement() {
+                        return tableField.AutoIncrement();
+                    }
+                };
+            }
         }
         return returnValue;
     }
