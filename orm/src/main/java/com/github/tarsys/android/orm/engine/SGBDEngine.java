@@ -24,11 +24,15 @@ import com.github.tarsys.android.orm.dataobjects.DataRow;
 import com.github.tarsys.android.orm.dataobjects.DataSource;
 import com.github.tarsys.android.orm.enums.DBDataType;
 import com.github.tarsys.android.orm.sqlite.SQLiteSupport;
+import com.github.tarsys.android.support.reflection.SerializableMethod;
+import com.github.tarsys.android.support.utilities.AndroidSupport;
+import com.google.gson.GsonBuilder;
 
 import org.springframework.core.annotation.AnnotationUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -215,7 +219,6 @@ public class SGBDEngine {
         if (getterMethod != null) {
             final TableField tableField = AnnotationUtils.findAnnotation(getterMethod, TableField.class);
             if (tableField != null) {
-
                 returnValue = new TableField() {
 
                     @Override
@@ -326,8 +329,20 @@ public class SGBDEngine {
             if (field != null && field.FieldName() != null && !field.FieldName().isEmpty()){
                 returnValue = field.FieldName();
             }else{
-                if (getterMethod.getName().startsWith("get"))
-                    returnValue = getterMethod.getName().substring(3).toLowerCase();
+                if (getterMethod.getName().startsWith("get")){
+                    String suffix = AndroidSupport.EmptyString;
+                    Class returnType = getterMethod.getReturnType();
+
+                    if (returnType.getAnnotation(DBEntity.class) != null){
+                        HashMap<TableField, Method> primaryKeyMethods = SGBDEngine.primaryKeyMethods(returnType, false);
+                        if (primaryKeyMethods != null && !primaryKeyMethods.isEmpty()){
+                            TableField entityField = SGBDEngine.tableFieldFromMethod(primaryKeyMethods.get((TableField)primaryKeyMethods.keySet().toArray()[0]));
+                            suffix = "_" + entityField.FieldName();
+                        }
+                    }
+
+                    returnValue = getterMethod.getName().substring(3).toLowerCase() + suffix;
+                }
                 else if (getterMethod.getName().startsWith("is"))
                     returnValue = getterMethod.getName().substring(2).toLowerCase();
             }
@@ -347,27 +362,30 @@ public class SGBDEngine {
 
                 if (methodReturnType == Boolean.class || methodReturnType == boolean.class)
                     returnValue = DBDataType.BooleanDataType;
-                if (methodReturnType == Integer.class  || methodReturnType == int.class)
+                else if (methodReturnType == Integer.class  || methodReturnType == int.class)
                     returnValue = DBDataType.IntegerDataType;
-                if (methodReturnType == Long.class  || methodReturnType == long.class)
+                else if (methodReturnType == Long.class  || methodReturnType == long.class)
                     returnValue = DBDataType.LongDataType;
-                if (methodReturnType == Double.class  || methodReturnType == double.class)
+                else if (methodReturnType == Double.class  || methodReturnType == double.class)
                     returnValue = DBDataType.RealDataType;
-                if (methodReturnType == String.class)
+                else if (methodReturnType == String.class)
                     returnValue = DBDataType.StringDataType;
-                if (methodReturnType == Date.class)
+                else if (methodReturnType == Date.class)
                     returnValue = DBDataType.DateDataType;
-                if (methodReturnType.isEnum())
+                else if (methodReturnType.isEnum())
                     returnValue = DBDataType.EnumDataType;
-                if (methodReturnType.getAnnotation(DBEntity.class) != null)
+                else if (methodReturnType.getAnnotation(DBEntity.class) != null)
                     returnValue = DBDataType.EntityDataType;
-                if (methodReturnType.isAssignableFrom(ArrayList.class)) {
+                else if (methodReturnType.isAssignableFrom(ArrayList.class)) {
                     if (getterMethod.getGenericReturnType() != null && getterMethod.getGenericReturnType() instanceof ParameterizedType) {
                         ParameterizedType parameterizedType = (ParameterizedType) getterMethod.getGenericReturnType();
                         if (parameterizedType != null && parameterizedType.getActualTypeArguments().length > 0 &&
                                 ((Class) parameterizedType.getActualTypeArguments()[0]).getAnnotation(DBEntity.class) != null)
                             returnValue = DBDataType.EntityListDataType;
                     }
+                }
+                else if (methodReturnType.isAssignableFrom(Serializable.class)){
+                    returnValue = DBDataType.Serializable;
                 }
             }
         }
@@ -650,11 +668,11 @@ public class SGBDEngine {
                                 retorno.put(nCampo, valorCampo != null ? String.valueOf(valorCampo) : tCampo.DefaultValue());
                                 break;
                             case RealDataType:
-                                retorno.put(nCampo, valorCampo != null ? ((Double)valorCampo) : Double.parseDouble(tCampo.DefaultValue()));
+                                retorno.put(nCampo, AndroidSupport.String2Double(valorCampo != null ? valorCampo.toString(): tCampo.DefaultValue()));
                                 break;
                             case IntegerDataType:
                             case LongDataType:
-                                retorno.put(nCampo, valorCampo != null ? ((Long)valorCampo) : Long.parseLong(tCampo.DefaultValue()));
+                                retorno.put(nCampo, AndroidSupport.String2Long(valorCampo != null ? valorCampo.toString() : tCampo.DefaultValue()));
                                 break;
                             case DateDataType:
                                 retorno.put(nCampo, valorCampo != null ? ((Date)valorCampo).getTime() : 0L);
@@ -747,7 +765,7 @@ public class SGBDEngine {
                                     datosWhere.add(valorCampo != null ? valorCampo.toString() : campoTabla.DefaultValue());
                                     break;
                                 case DateDataType:
-                                    datosWhere.add(((Long)(valorCampo != null ? ((Date)valorCampo).getTime() : 0L)).toString());
+                                    datosWhere.add(String.valueOf(AndroidSupport.toLong(valorCampo != null ? ((Date)valorCampo).getTime() : 0L)));
                                     break;
                                 case EnumDataType:
                                     Class tipoEnum;
@@ -773,6 +791,9 @@ public class SGBDEngine {
                                     PrimaryFilter f = SGBDEngine.createPrimaryKeyFilter(valorCampo, true);
                                     clausulaWhere += " and " + f.FilterString;
                                     datosWhere.addAll(f.FilterData);
+                                    break;
+                                case Serializable:
+                                    datosWhere.add(valorCampo != null ? valorCampo.toString() : campoTabla.DefaultValue());
                                     break;
                             }
                         }
@@ -826,6 +847,7 @@ public class SGBDEngine {
                             switch (campoTabla.DataType()){
                                 case StringDataType:
                                 case TextDataType:
+                                case Serializable:
                                     valorCampo = cursorDatos.getString(cursorDatos.getColumnIndex(nCampo));
                                     break;
                                 case RealDataType:
@@ -837,7 +859,7 @@ public class SGBDEngine {
                                 case LongDataType:
                                 case DateDataType:
                                 case BooleanDataType:
-                                    valorCampo = ((Long)cursorDatos.getLong(cursorDatos.getColumnIndex(nCampo))).toString();
+                                    valorCampo = String.valueOf(cursorDatos.getLong(cursorDatos.getColumnIndex(nCampo)));
                                     break;
                                 case EntityDataType:
                                     break;
@@ -885,6 +907,7 @@ public class SGBDEngine {
                         switch (campoTabla.DataType()){
                             case StringDataType:
                             case TextDataType:
+                            case Serializable:
                                 valorCampo = cursorDatos.getString(cursorDatos.getColumnIndex(nCampoCursor));
                                 break;
                             case RealDataType:
@@ -1043,6 +1066,16 @@ public class SGBDEngine {
                                                                 metodoIns.invoke(returnValue, arrayEntidades);
                                                             }
                                                         }
+                                                    }
+                                                    break;
+                                                }
+                                                case Serializable:
+                                                {
+                                                    try {
+                                                        metodoIns.invoke(returnValue, new GsonBuilder().create().fromJson(query.getString(query.getColumnIndex(campoTabla.FieldName())), method.getReturnType()));
+                                                    }catch (Exception ex)
+                                                    {
+
                                                     }
                                                     break;
                                                 }
@@ -1504,22 +1537,26 @@ public class SGBDEngine {
                             if (campoTabla != null && !campoTabla.AutoIncrement()){
                                 try{
                                     Object valorCampo = m.invoke(primaryKeyEntity);
+
                                     switch (campoTabla.DataType()){
                                         case StringDataType:
                                         case TextDataType:
                                             valores.put(campoTabla.FieldName(), valorCampo != null ? String.valueOf(valorCampo) : campoTabla.DefaultValue());
                                             break;
+                                        case Serializable:
+                                            valores.put(campoTabla.FieldName(), valorCampo != null ? valorCampo.toString(): campoTabla.DefaultValue());
+                                            break;
                                         case RealDataType:
-                                            valores.put(campoTabla.FieldName(), valorCampo != null ? ((Double)valorCampo) : Double.parseDouble(campoTabla.DefaultValue()));
+                                            valores.put(campoTabla.FieldName(), AndroidSupport.toDouble(valorCampo != null ? valorCampo : campoTabla.DefaultValue()));
                                             break;
                                         case IntegerDataType:
                                         case LongDataType:
-                                            valores.put(campoTabla.FieldName(), valorCampo != null ? ((Long)valorCampo) : Long.parseLong(campoTabla.DefaultValue()));
+                                            valores.put(campoTabla.FieldName(), AndroidSupport.toLong(valorCampo != null? valorCampo : campoTabla.DefaultValue()));
                                             break;
                                         case EnumDataType:
                                             Class tipoEnum;
                                             try{
-                                                if ((tipoEnum = valorCampo.getClass().getDeclaringClass()).isEnum() && tipoEnum.getMethod("value", new Class[]{}) != null){
+                                                if (valorCampo.getClass() != null && valorCampo.getClass().getDeclaringClass() != null && (tipoEnum = valorCampo.getClass().getDeclaringClass()).isEnum() && tipoEnum.getMethod("value", new Class[]{}) != null){
                                                     int v = (Integer) tipoEnum.getMethod("value", new Class[]{}).invoke(valorCampo, new Object[]{});
                                                     valores.put(campoTabla.FieldName(), valorCampo != null ? v : Integer.parseInt(campoTabla.DefaultValue()));
                                                 }

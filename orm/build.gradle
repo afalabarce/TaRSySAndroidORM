@@ -4,8 +4,8 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven'
 apply plugin: 'me.tatarka.retrolambda'
 
-def libraryVersionId = 1028
-def libraryVersionCode='1.0.2.8'
+def libraryVersionId = 1034
+def libraryVersionCode='1.0.3.4'
 
 ext {
     bintrayRepo = 'maven'
@@ -53,9 +53,11 @@ dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     retrolambdaConfig 'net.orfjackal.retrolambda:retrolambda:1.+'
     compile 'com.annimon:stream:1.0.1'
+    compile 'com.github.tarsys.android:support:1.0.3.1'
     compile 'com.google.code.gson:gson:2.6.1'
     compile 'com.google.guava:guava:19.0'
     compile 'org.springframework:spring:2.5.6.SEC03'
+
 }
 
 group = 'com.github.tarsys.android'

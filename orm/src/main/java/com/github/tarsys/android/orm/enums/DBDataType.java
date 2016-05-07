@@ -10,9 +10,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "void";
-
-                    return returnValue;
+                    return"void";
                 }
             },
     IntegerDataType
@@ -20,9 +18,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "integer";
-
-                    return returnValue;
+                    return"integer";
                 }
             },
     LongDataType
@@ -30,9 +26,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "integer";
-
-                    return returnValue;
+                    return"integer";
                 }
             },
     StringDataType
@@ -40,9 +34,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = String.format("varchar(%d)", fieldLength);
-
-                    return returnValue;
+                    return String.format("varchar(%d)", fieldLength);
                 }
             },
     TextDataType
@@ -50,9 +42,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "text";
-
-                    return returnValue;
+                    return"text";
                 }
             },
     RealDataType
@@ -60,9 +50,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "real";
-
-                    return returnValue;
+                    return"real";
                 }
             },
     DateDataType
@@ -70,9 +58,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "integer";
-
-                    return returnValue;
+                    return"integer";
                 }
             },
     EntityDataType
@@ -80,9 +66,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "entity";
-
-                    return returnValue;
+                    return"entity";
                 }
             },
     EntityListDataType
@@ -90,9 +74,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "entitylist";
-
-                    return returnValue;
+                    return"entitylist";
                 }
             },
     EnumDataType
@@ -100,9 +82,7 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "integer";
-
-                    return returnValue;
+                    return "integer";
                 }
             },
     BooleanDataType
@@ -110,11 +90,15 @@ public enum DBDataType
                 @Override
                 public String SqlType(int fieldLength)
                 {
-                    String returnValue = "integer";
-
-                    return returnValue;
+                    return "integer";
                 }
-            };
+            },
+    Serializable {
+        @Override
+        public String SqlType(int fieldLength) {
+            return "text";
+        }
+    };
 
     public abstract String SqlType(int fieldLength);
 
